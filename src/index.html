@@ -14,12 +14,14 @@
 </head>
 <body class="bg-light">
 
-  <div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle text-center" style="z-index: 1050; display: none;">
+  <!-- Skrin Loading Utama -->
+  <div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle text-center" style="z-index: 1050; display: block;">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-2 text-secondary fw-semibold">Memproses data SSoT...</p>
+    <p class="mt-2 text-secondary fw-semibold">Memuat turun data SSoT...</p>
   </div>
 
-  <div class="container-fluid px-4 py-4" id="mainContent">
+  <div class="container-fluid px-4 py-4" id="mainContent" style="display: none;">
+    <!-- Header Dashboard -->
     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
       <div>
         <h1 class="h2 text-dark fw-bold m-0">Papan Pemantauan Peperiksaan Lisan (VIVA)</h1>
@@ -30,6 +32,7 @@
       </button>
     </div>
 
+    <!-- Ringkasan Status Card (Metrics) -->
     <div class="row g-3 mb-4">
       <div class="col-md-3"><div class="card border-0 shadow-sm bg-primary text-white"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Jumlah Pelajar</h6><h3 class="mb-0 fw-bold" id="metricTotal">0</h3></div><i class="fa-solid fa-graduation-cap fa-2x opacity-50"></i></div></div></div>
       <div class="col-md-3"><div class="card border-0 shadow-sm bg-warning text-dark"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Fasa Pra-Viva</h6><h3 class="mb-0 fw-bold" id="metricPraViva">0</h3></div><i class="fa-solid fa-calendar-days fa-2x opacity-50"></i></div></div></div>
@@ -37,6 +40,7 @@
       <div class="col-md-3"><div class="card border-0 shadow-sm bg-danger text-white"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Fasa Pembetulan</h6><h3 class="mb-0 fw-bold" id="metricPembetulan">0</h3></div><i class="fa-solid fa-triangle-exclamation fa-2x opacity-50"></i></div></div></div>
     </div>
 
+    <!-- Jadual Utama Pemantauan -->
     <div class="table-responsive">
       <table class="table table-hover align-middle m-0">
         <thead class="table-dark">
@@ -54,6 +58,7 @@
     </div>
   </div>
 
+  <!-- MODAL TINDAKAN KAWALAN (POPUP) -->
   <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -69,6 +74,7 @@
           </div>
           <hr>
           
+          <!-- SEKSYEN LANGKAH 3: PENGURUSAN KALENDAR -->
           <div class="card border-primary mb-3">
             <div class="card-header bg-light border-primary fw-bold text-primary">
               <i class="fa-solid fa-calendar-plus"></i> Langkah 3: Menetapkan Tarikh Peperiksaan Lisan (Google Calendar)
@@ -78,4 +84,163 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label for="vivaDateInput" class="form-label small fw-bold">Pilih Tarikh Cadangan</label>
-                  <input type="date" class="form-
+                  <input type="date" class="form-control form-control-sm" id="vivaDateInput">
+                </div>
+                <div class="col-md-6">
+                  <label for="vivaTimeInput" class="form-label small fw-bold">Pilih Masa Mula</label>
+                  <input type="time" class="form-control form-control-sm" id="vivaTimeInput">
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm mt-3" onclick="submitCalendarBooking()">
+                <i class="fa-solid fa-envelope-circle-check"></i> Simpan Tarikh & Hantar Jemputan Kalendar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pautan CDN Bootstrap JS Terkini (Sudah Dibetulkan) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    let globalStudentsData = [];
+    let bootstrapModalInstance;
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Sediakan modal instance dengan selamat
+      if (typeof bootstrap !== 'undefined') {
+        bootstrapModalInstance = new bootstrap.Modal(document.getElementById('actionModal'));
+      }
+      loadDashboardData();
+    });
+
+    function loadDashboardData() {
+      document.getElementById('loadingSpinner').style.display = 'block';
+      document.getElementById('mainContent').style.display = 'none';
+      
+      google.script.run
+        .withSuccessHandler(renderStudentsTable)
+        .withFailureHandler(handleError)
+        .getStudentsData();
+    }
+
+    function renderStudentsTable(data) {
+      globalStudentsData = data;
+      const tbody = document.getElementById('studentTableBody');
+      tbody.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tiada rekod pelajar dijumpai.</td></tr>`;
+        updateMetrics(0, 0, 0, 0);
+        showDashboard();
+        return;
+      }
+
+      let countPra = 0, countViva = 0, countSelesai = 0;
+
+      data.forEach(student => {
+        // Elakkan crash jika ada sel kosong dalam Google Sheets SSoT
+        const statusLangkah = student.Status_Langkah ? String(student.Status_Langkah) : "";
+
+        if (statusLangkah.includes("Langkah 1") || statusLangkah.includes("Langkah 2") || statusLangkah.includes("Langkah 3")) {
+          countPra++;
+        } else if (statusLangkah.includes("Langkah 13")) {
+          countSelesai++;
+        } else {
+          countViva++;
+        }
+
+        let badgeColor = "bg-secondary";
+        if (statusLangkah.includes("Langkah 13")) badgeColor = "bg-danger";
+        else if (statusLangkah.includes("Langkah 3")) badgeColor = "bg-success";
+        else if (statusLangkah.includes("Langkah 2")) badgeColor = "bg-warning text-dark";
+
+        const row = `
+          <tr>
+            <td>
+              <div class="fw-bold text-primary">${student.Nama_Pelajar || '-'}</div>
+              <small class="text-muted"><i class="fa-solid fa-id-card"></i> ${student.ID_Pelajar || '-'}</small>
+            </td>
+            <td><div class="text-wrap" style="max-width: 250px; font-size:0.85rem;">${student.Tajuk_Tesis || '-'}</div></td>
+            <td>
+              <div class="small"><strong>Pengerusi:</strong> ${student.Pengerusi || '-'}</div>
+              <div class="small text-muted"><strong>SV:</strong> ${student.Penyelia || '-'}</div>
+            </td>
+            <td><span class="small fw-semibold text-success">${student.Tarikh_Viva ? '<i class="fa-solid fa-calendar-check"></i> ' + student.Tarikh_Viva : '<i class="fa-solid fa-clock text-muted"></i> Belum Ditetapkan'}</span></td>
+            <td><span class="badge ${badgeColor} status-badge">${statusLangkah || 'Tiada Status'}</span></td>
+            <td class="text-center">
+              <div class="btn-group">
+                <a href="${student.Folder_Drive_URL || '#'}" target="_blank" class="btn btn-sm btn-outline-secondary action-btn ${student.Folder_Drive_URL ? '' : 'disabled'}"><i class="fa-solid fa-folder-open text-warning"></i> Drive</a>
+                <button type="button" class="btn btn-sm btn-primary action-btn" onclick="openActionModal('${student.ID_Pelajar}')"><i class="fa-solid fa-sliders"></i> Kawal</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+
+      updateMetrics(data.length, countPra, countViva, countSelesai);
+      showDashboard();
+    }
+
+    function updateMetrics(total, pra, viva, pembetulan) {
+      document.getElementById('metricTotal').innerText = total;
+      document.getElementById('metricPraViva').innerText = pra;
+      document.getElementById('metricViva').innerText = viva;
+      document.getElementById('metricPembetulan').innerText = pembetulan;
+    }
+
+    function showDashboard() {
+      document.getElementById('loadingSpinner').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+    }
+
+    function openActionModal(idPelajar) {
+      const student = globalStudentsData.find(s => s.ID_Pelajar == idPelajar);
+      if (!student) return;
+
+      document.getElementById('modalStudentId').value = student.ID_Pelajar;
+      document.getElementById('modalStudentName').innerText = student.Nama_Pelajar;
+      document.getElementById('modalStudentStatus').innerText = student.Status_Langkah || "Tiada Status";
+      
+      document.getElementById('vivaDateInput').value = "";
+      document.getElementById('vivaTimeInput').value = "";
+
+      if (bootstrapModalInstance) {
+        bootstrapModalInstance.show();
+      } else {
+        alert("Ralat: Elemen Bootstrap modal tidak dapat dimuatkan.");
+      }
+    }
+
+    function submitCalendarBooking() {
+      const studentId = document.getElementById('modalStudentId').value;
+      const dateVal = document.getElementById('vivaDateInput').value;
+      const timeVal = document.getElementById('vivaTimeInput').value;
+
+      if (!dateVal || !timeVal) {
+        alert("Sila pilih tarikh dan masa mula peperiksaan lisan terlebih dahulu.");
+        return;
+      }
+
+      if (bootstrapModalInstance) bootstrapModalInstance.hide();
+      document.getElementById('loadingSpinner').style.display = 'block';
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          alert(response.message);
+          loadDashboardData();
+        })
+        .withFailureHandler(handleError)
+        .bookVivaCalendarEvent(studentId, dateVal, timeVal);
+    }
+
+    function handleError(error) {
+      alert("Ralat Sistem: " + error.message);
+      showDashboard();
+    }
+  </script>
+</body>
+</html>
