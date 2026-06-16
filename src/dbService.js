@@ -1,62 +1,53 @@
 /**
- * Membaca data daripada Google Sheets untuk dipaparkan di Dashboard
+ * Fungsi untuk membina susunan lajur (columns) secara automatik 
+ * untuk helaian "Calon" dan "Direktori".
  */
-function getStudentsData() {
+function setupDatabaseHeaders() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName("Pelajar");
   
-  if (!sheet) return [];
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1);
-  
-  // Tukar array kepada format JSON Object supaya senang dibaca oleh Frontend JS
-  return rows.map(row => {
-    let obj = {};
-    headers.forEach((header, index) => {
-      obj[header] = row[index];
-    });
-    return obj;
-  });
-}
-
-/**
- * Mendaftarkan pelajar baru, menjana folder Drive, dan merekod ke Google Sheets (Langkah 1 & 2)
- */
-function registerNewStudent(studentData) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName("Pelajar");
-  
-  // Jika sheet 'Pelajar' belum ada, cipta secara automatik berserta headers
-  if (!sheet) {
-    sheet = ss.insertSheet("Pelajar");
-    sheet.appendRow([
-      "ID_Pelajar", "Nama_Pelajar", "Tajuk_Tesis", "Emel_Pelajar", 
-      "Pengerusi", "Pemeriksa_Dalam", "Pemeriksa_Luar", "Wakil_Dekan", 
-      "Penyelia", "Tarikh_Viva", "Pautan_Webex", "Status_Langkah", "Folder_Drive_URL"
-    ]);
+  // ==========================================
+  // 1. SETUP HELAIAN "Calon"
+  // ==========================================
+  let sheetCalon = ss.getSheetByName("Calon");
+  if (!sheetCalon) {
+    sheetCalon = ss.insertSheet("Calon");
   }
   
-  // 1. Jalankan fungsi automasi folder Google Drive yang kita bina tadi
-  const folderUrl = createStudentFolderStructure(studentData.Nama_Pelajar, studentData.ID_Pelajar);
+  const headerCalon = [
+    "No_Matrik", "Nama_Pelajar", "Semester_Semasa", "Nama_Program", "NEC", 
+    "Tajuk_Penyelidikan", "Emel_Pelajar", "NoTel_Pelajar", "Penyelia_Utama", 
+    "Penyelia_Bersama", "Pengerusi", "Pengerusi_Simpanan", "Pemeriksa_Luar", 
+    "Pemeriksa_Luar_Simpanan", "Pemeriksa_Dalam", "Pemeriksa_Dalam_Simpanan", 
+    "Wakil_Dekan", "Wakil_Dekan_Simpanan", "Tarikh_Viva", "Pautan_Webex", 
+    "Status_Langkah", "Folder_Drive_URL"
+  ];
   
-  // 2. Masukkan data ke baris baharu di Google Sheets
-  sheet.appendRow([
-    studentData.ID_Pelajar,
-    studentData.Nama_Pelajar,
-    studentData.Tajuk_Tesis,
-    studentData.Emel_Pelajar,
-    studentData.Pengerusi || "",
-    studentData.Pemeriksa_Dalam || "",
-    studentData.Pemeriksa_Luar || "",
-    studentData.Wakil_Dekan || "",
-    studentData.Penyelia || "",
-    "", // Tarikh Viva (Diisi kemudian di Langkah 3) 
-    "", // Pautan Webex (Diisi kemudian di Langkah 3/4) 
-    "Langkah 2: Terima Dokumen (PPS17/PPS25)", // Status Fasa Semasa 
-    folderUrl
-  ]);
+  // Masukkan data ke baris pertama (Row 1)
+  sheetCalon.getRange(1, 1, 1, headerCalon.length).setValues([headerCalon]);
+  // Format baris pertama (Tebal & Warna Latar Hijau Cair)
+  sheetCalon.getRange(1, 1, 1, headerCalon.length).setFontWeight("bold").setBackground("#D9EAD3");
+  // Pegunkan (Freeze) baris pertama supaya mudah skrol
+  sheetCalon.setFrozenRows(1);
+
+  // ==========================================
+  // 2. SETUP HELAIAN "Direktori"
+  // ==========================================
+  let sheetDirektori = ss.getSheetByName("Direktori");
+  if (!sheetDirektori) {
+    sheetDirektori = ss.insertSheet("Direktori");
+  }
   
-  return { success: true, message: "Pendaftaran berjaya dan folder Drive telah dicipta!" };
+  const headerDirektori = [
+    "Nama_Staf", "Emel", "No_Telefon", "Institusi", 
+    "Kategori", "Status_Simpanan", "Kekerapan_Lantikan", "Kepakaran"
+  ];
+  
+  // Masukkan data ke baris pertama (Row 1)
+  sheetDirektori.getRange(1, 1, 1, headerDirektori.length).setValues([headerDirektori]);
+  // Format baris pertama (Tebal & Warna Latar Biru Cair)
+  sheetDirektori.getRange(1, 1, 1, headerDirektori.length).setFontWeight("bold").setBackground("#C9DAF8");
+  // Pegunkan (Freeze) baris pertama
+  sheetDirektori.setFrozenRows(1);
+
+  return "Pangkalan Data Berjaya Disusun!";
 }
