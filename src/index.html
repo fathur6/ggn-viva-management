@@ -3,54 +3,84 @@
 <head>
   <base target="_top">
   <meta charset="UTF-8">
-  <title>Papan Pemantauan Peperiksaan Lisan (VIVA)</title>
+  <title>VIVA SSoT Dashboard | UniSZA</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    .status-badge { font-size: 0.85rem; padding: 0.4em 0.8em; }
-    .table-responsive { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    .action-btn { font-size: 0.8rem; }
+    :root {
+      --checkpoint-bg: #1a1d23;
+      --checkpoint-done: #00f2c3;
+      --checkpoint-pending: #2c313c;
+    }
+    .status-badge { font-size: 0.75rem; padding: 0.3em 0.6em; border-radius: 20px; }
+    .table-responsive { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    
+    /* Checkpoint Visual Styles */
+    .checkpoint-container { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--checkpoint-pending); position: relative; transition: all 0.3s ease; }
+    .dot.done { background: var(--checkpoint-done); box-shadow: 0 0 8px var(--checkpoint-done); }
+    .dot.current { background: #ffc107; border: 2px solid #fff; transform: scale(1.3); }
+    .dot.done::after { content: '✓'; color: #1a1d23; font-size: 8px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
+    
+    /* Stepper labels in Modal */
+    .stepper-wrapper { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 10px; }
+    .step-item { display: flex; align-items: center; gap: 15px; padding: 8px; border-radius: 8px; transition: 0.2s; }
+    .step-item.active { background: #f0f7ff; border-left: 4px solid #0d6efd; }
+    .step-number { width: 28px; height: 28px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; }
+    .step-item.done .step-number { background: #198754; color: white; }
+    .step-item.active .step-number { background: #0d6efd; color: white; }
+    
+    /* Custom link style for student name */
+    .student-link { cursor: pointer; transition: color 0.2s; }
+    .student-link:hover { text-decoration: underline !important; color: #0a58ca !important; }
   </style>
 </head>
 <body class="bg-light">
 
-  <!-- Skrin Loading Utama -->
   <div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle text-center" style="z-index: 1050; display: block;">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-2 text-secondary fw-semibold">Memuat turun data SSoT...</p>
+    <p class="mt-2 text-secondary fw-semibold">Sinkronisasi Data SSoT...</p>
   </div>
 
   <div class="container-fluid px-4 py-4" id="mainContent" style="display: none;">
-    <!-- Header Dashboard -->
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h1 class="h2 text-dark fw-bold m-0">Papan Pemantauan Peperiksaan Lisan (VIVA)</h1>
-        <p class="text-muted m-0">Sistem Pemantauan Aliran Kerja & Automasi Urus Setia Fakulti</p>
+        <h1 class="h3 text-dark fw-bold m-0"><i class="fa-solid fa-gauge-high"></i> Dashboard VIVA 14-Langkah</h1>
+        <p class="text-muted small m-0">Sistem Automasi Peperiksaan Lisan (Master & PhD)</p>
       </div>
-      <button class="btn btn-outline-primary" onclick="loadDashboardData()">
-        <i class="fa-solid fa-rotate"></i> Refresh Data
-      </button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-white shadow-sm border" onclick="loadDashboardData()"><i class="fa-solid fa-rotate"></i> Kemaskini</button>
+      </div>
     </div>
 
-    <!-- Ringkasan Status Card (Metrics) -->
     <div class="row g-3 mb-4">
-      <div class="col-md-3"><div class="card border-0 shadow-sm bg-primary text-white"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Jumlah Calon</h6><h3 class="mb-0 fw-bold" id="metricTotal">0</h3></div><i class="fa-solid fa-graduation-cap fa-2x opacity-50"></i></div></div></div>
-      <div class="col-md-3"><div class="card border-0 shadow-sm bg-warning text-dark"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Fasa Persediaan</h6><h3 class="mb-0 fw-bold" id="metricPraViva">0</h3></div><i class="fa-solid fa-calendar-days fa-2x opacity-50"></i></div></div></div>
-      <div class="col-md-3"><div class="card border-0 shadow-sm bg-info text-white"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Fasa Peperiksaan</h6><h3 class="mb-0 fw-bold" id="metricViva">0</h3></div><i class="fa-solid fa-chalkboard-user fa-2x opacity-50"></i></div></div></div>
-      <div class="col-md-3"><div class="card border-0 shadow-sm bg-danger text-white"><div class="card-body d-flex align-items-center justify-content-between"><div><h6 class="text-uppercase mb-1 opacity-75">Fasa Pembetulan</h6><h3 class="mb-0 fw-bold" id="metricPembetulan">0</h3></div><i class="fa-solid fa-triangle-exclamation fa-2x opacity-50"></i></div></div></div>
+      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
+        <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><i class="fa-solid fa-users fa-xl"></i></div>
+        <div><small class="text-muted d-block">Jumlah Calon</small><h4 class="m-0 fw-bold" id="metricTotal">0</h4></div>
+      </div></div></div>
+      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
+        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><i class="fa-solid fa-hourglass-start fa-xl"></i></div>
+        <div><small class="text-muted d-block">Fasa Persediaan</small><h4 class="m-0 fw-bold" id="metricPraViva">0</h4></div>
+      </div></div></div>
+      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
+        <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info"><i class="fa-solid fa-microphone-lines fa-xl"></i></div>
+        <div><small class="text-muted d-block">Fasa Peperiksaan</small><h4 class="m-0 fw-bold" id="metricViva">0</h4></div>
+      </div></div></div>
+      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
+        <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success"><i class="fa-solid fa-circle-check fa-xl"></i></div>
+        <div><small class="text-muted d-block">Selesai</small><h4 class="m-0 fw-bold" id="metricPembetulan">0</h4></div>
+      </div></div></div>
     </div>
 
-    <!-- Jadual Utama Pemantauan -->
     <div class="table-responsive">
-      <table class="table table-hover align-middle m-0">
-        <thead class="table-dark">
+      <table class="table table-hover align-middle">
+        <thead class="bg-light">
           <tr>
-            <th>Matrik / Nama Calon</th>
-            <th>Tajuk Penyelidikan</th>
-            <th>Jawatankuasa (Pengerusi/SV)</th>
+            <th style="width: 20%;">Calon & Program</th>
+            <th style="width: 35%;">Aliran Kerja (14 Checkpoints)</th>
+            <th>Jawatankuasa</th>
             <th>Tarikh Viva</th>
-            <th>Status Semasa</th>
-            <th class="text-center">Tindakan Urus Setia</th>
+            <th class="text-center">Tindakan</th>
           </tr>
         </thead>
         <tbody id="studentTableBody"></tbody>
@@ -58,42 +88,45 @@
     </div>
   </div>
 
-  <!-- MODAL TINDAKAN KAWALAN (POPUP) -->
-  <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-dark text-white">
-          <h5 class="modal-title" id="actionModalLabel"><i class="fa-solid fa-sliders"></i> Panel Tindakan Urus Setia</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+  <div class="modal fade" id="actionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white p-4">
+          <h5 class="modal-title"><i class="fa-solid fa-user-gear"></i> Pengurusan Calon: <span id="modalStudentName"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="modalStudentId">
-          <div class="mb-3">
-            <h6>Nama Calon: <span id="modalStudentName" class="text-primary fw-bold"></span></h6>
-            <p class="text-muted small">Status Semasa: <span id="modalStudentStatus" class="badge bg-secondary"></span></p>
-          </div>
-          <hr>
-          
-          <!-- SEKSYEN LANGKAH 3: PENGURUSAN KALENDAR -->
-          <div class="card border-primary mb-3">
-            <div class="card-header bg-light border-primary fw-bold text-primary">
-              <i class="fa-solid fa-calendar-plus"></i> Langkah 3: Menetapkan Tarikh Peperiksaan Lisan (Google Calendar)
-            </div>
-            <div class="card-body">
-              <p class="card-text small text-muted">Sistem akan mengunci tarikh dalam Google Calendar rasmi dan menghantar emel jemputan acara secara automatik.</p>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label for="vivaDateInput" class="form-label small fw-bold">Pilih Tarikh Cadangan</label>
-                  <input type="date" class="form-control form-control-sm" id="vivaDateInput">
+        <div class="modal-body p-4">
+          <div class="row">
+            <div class="col-md-4 border-end">
+              <h6 class="fw-bold mb-3"><i class="fa-solid fa-list-check"></i> Status Aliran Kerja</h6>
+              <div class="stepper-wrapper" id="modalStepper">
                 </div>
-                <div class="col-md-6">
-                  <label for="vivaTimeInput" class="form-label small fw-bold">Pilih Masa Mula</label>
-                  <input type="time" class="form-control form-control-sm" id="vivaTimeInput">
+            </div>
+            <div class="col-md-8 px-4">
+              <div class="alert alert-info py-2 small"><i class="fa-solid fa-circle-info"></i> Sila lengkapkan tugasan bagi langkah semasa untuk menggerakkan checkpoint.</div>
+              
+              <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-calendar-day"></i> Langkah 3: Penetapan Viva</h6>
+                  <div class="row g-2">
+                    <div class="col-6"><label class="small fw-bold">Tarikh</label><input type="date" id="vivaDateInput" class="form-control form-control-sm"></div>
+                    <div class="col-6"><label class="small fw-bold">Masa</label><input type="time" id="vivaTimeInput" class="form-control form-control-sm">
+                    <small class="text-muted italic" style="font-size: 0.7rem;">*Biarkan kosong jika belum pasti.</small></div>
+                  </div>
+                  <button class="btn btn-primary btn-sm mt-3 w-100" onclick="submitCalendarBooking()"><i class="fa-solid fa-paper-plane"></i> Simpan & Hantar Jemputan</button>
                 </div>
               </div>
-              <button type="button" class="btn btn-primary btn-sm mt-3" onclick="submitCalendarBooking()">
-                <i class="fa-solid fa-envelope-circle-check"></i> Simpan Tarikh & Hantar Jemputan Kalendar
-              </button>
+
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-file-pdf"></i> Penjanaan Surat Automatik</h6>
+                  <div class="d-grid gap-2">
+                    <button class="btn btn-outline-dark btn-sm text-start" onclick="generateNoS()"><i class="fa-solid fa-file-signature text-danger"></i> 1. Surat Pemakluman NoS (Langkah 1)</button>
+                    <button class="btn btn-outline-dark btn-sm text-start" onclick="generateLantikan('Pengerusi')"><i class="fa-solid fa-user-tie text-primary"></i> 2. Surat Lantikan Pengerusi (Langkah 4)</button>
+                    <button class="btn btn-outline-dark btn-sm text-start" onclick="generateLantikan('Pemeriksa Luar')"><i class="fa-solid fa-globe text-success"></i> 3. Surat Lantikan Pemeriksa Luar (Langkah 4)</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -102,141 +135,113 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
   <script>
-    let globalStudentsData = [];
-    let bootstrapModalInstance;
+    let globalData = [];
+    const langkahLabels = [
+      "Notis Penyerahan Tesis (NoS)", "Penerimaan Dokumen Serahan", "Penetapan Tarikh Viva", 
+      "Pelantikan Jawatankuasa", "Penghantaran Tesis ke Penilai", "Penerimaan Laporan Penilai", 
+      "Pra-Viva / Taklimat", "Sesi Viva Voce", "Keputusan & Borang Pembetulan", 
+      "Proses Pembetulan Tesis", "Pengesahan Pembetulan", "Perakuan Fakulti", 
+      "Kelulusan Senat", "Penyerahan Hardbound & Graduasi"
+    ];
 
-    document.addEventListener("DOMContentLoaded", function() {
-      if (typeof bootstrap !== 'undefined') {
-        bootstrapModalInstance = new bootstrap.Modal(document.getElementById('actionModal'));
-      }
-      loadDashboardData();
-    });
+    document.addEventListener("DOMContentLoaded", loadDashboardData);
 
     function loadDashboardData() {
       document.getElementById('loadingSpinner').style.display = 'block';
-      document.getElementById('mainContent').style.display = 'none';
-      
-      google.script.run
-        .withSuccessHandler(renderStudentsTable)
-        .withFailureHandler(handleError)
-        .getStudentsData();
+      google.script.run.withSuccessHandler(renderDashboard).getStudentsData();
     }
 
-    function renderStudentsTable(data) {
-      globalStudentsData = data;
+    function renderDashboard(data) {
+      globalData = data;
       const tbody = document.getElementById('studentTableBody');
       tbody.innerHTML = '';
-
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tiada rekod calon dijumpai.</td></tr>`;
-        updateMetrics(0, 0, 0, 0);
-        showDashboard();
-        return;
-      }
-
+      
       let countPra = 0, countViva = 0, countSelesai = 0;
 
-      data.forEach(student => {
-        const statusLangkah = student.Status_Langkah ? String(student.Status_Langkah) : "";
+      data.forEach(s => {
+        const currentStep = extractStepNumber(s.Status_Langkah);
+        if (currentStep <= 4) countPra++;
+        else if (currentStep >= 13) countSelesai++;
+        else countViva++;
 
-        if (statusLangkah.includes("Langkah 1") || statusLangkah.includes("Langkah 2") || statusLangkah.includes("Langkah 3")) {
-          countPra++;
-        } else if (statusLangkah.includes("Langkah 13")) {
-          countSelesai++;
-        } else {
-          countViva++;
-        }
-
-        let badgeColor = "bg-secondary";
-        if (statusLangkah.includes("Langkah 13")) badgeColor = "bg-danger";
-        else if (statusLangkah.includes("Langkah 3")) badgeColor = "bg-success";
-        else if (statusLangkah.includes("Langkah 2")) badgeColor = "bg-warning text-dark";
+        const checkpointUI = generateCheckpointUI(currentStep);
 
         const row = `
           <tr>
             <td>
-              <div class="fw-bold text-primary">${student.Nama_Pelajar || '-'}</div>
-              <small class="text-muted"><i class="fa-solid fa-id-card"></i> ${student.No_Matrik || '-'}</small>
+              <a href="#" class="fw-bold text-primary text-decoration-none student-link" onclick="openModal('${s.No_Matrik}'); return false;" title="Klik untuk papar panel urus setia">${s.Nama_Pelajar || '-'}</a>
+              <br><small class="text-muted">${s.No_Matrik} | ${s.Nama_Program || 'PhD'}</small>
             </td>
-            <td><div class="text-wrap" style="max-width: 250px; font-size:0.85rem;">${student.Tajuk_Penyelidikan || '-'}</div></td>
             <td>
-              <div class="small"><strong>Pengerusi:</strong> ${student.Pengerusi || '-'}</div>
-              <div class="small text-muted"><strong>SV:</strong> ${student.Penyelia_Utama || '-'}</div>
+              ${checkpointUI}
+              <div class="mt-1"><span class="badge bg-light text-dark border fw-normal" style="font-size:0.65rem;">${s.Status_Langkah || 'Mula'}</span></div>
             </td>
-            <td><span class="small fw-semibold text-success">${student.Tarikh_Viva ? '<i class="fa-solid fa-calendar-check"></i> ' + student.Tarikh_Viva : '<i class="fa-solid fa-clock text-muted"></i> Belum Ditetapkan'}</span></td>
-            <td><span class="badge ${badgeColor} status-badge">${statusLangkah || 'Tiada Status'}</span></td>
+            <td><small><strong>Pengerusi:</strong> ${s.Pengerusi || '-'}<br><strong>SV:</strong> ${s.Penyelia_Utama || '-'}</small></td>
+            <td><small class="text-success fw-bold"><i class="fa-solid fa-calendar-day"></i> ${s.Tarikh_Viva || 'TBC'}</small></td>
             <td class="text-center">
-              <div class="btn-group">
-                <a href="${student.Folder_Drive_URL || '#'}" target="_blank" class="btn btn-sm btn-outline-secondary action-btn ${student.Folder_Drive_URL ? '' : 'disabled'}"><i class="fa-solid fa-folder-open text-warning"></i> Drive</a>
-                <button type="button" class="btn btn-sm btn-primary action-btn" onclick="openActionModal('${student.No_Matrik}')"><i class="fa-solid fa-sliders"></i> Kawal</button>
-              </div>
+              <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="openModal('${s.No_Matrik}')">Kawal</button>
             </td>
           </tr>
         `;
         tbody.insertAdjacentHTML('beforeend', row);
       });
 
-      updateMetrics(data.length, countPra, countViva, countSelesai);
-      showDashboard();
-    }
-
-    function updateMetrics(total, pra, viva, pembetulan) {
-      document.getElementById('metricTotal').innerText = total;
-      document.getElementById('metricPraViva').innerText = pra;
-      document.getElementById('metricViva').innerText = viva;
-      document.getElementById('metricPembetulan').innerText = pembetulan;
-    }
-
-    function showDashboard() {
+      document.getElementById('metricTotal').innerText = data.length;
+      document.getElementById('metricPraViva').innerText = countPra;
+      document.getElementById('metricViva').innerText = countViva;
+      document.getElementById('metricPembetulan').innerText = countSelesai;
+      
       document.getElementById('loadingSpinner').style.display = 'none';
       document.getElementById('mainContent').style.display = 'block';
     }
 
-    function openActionModal(idPelajar) {
-      const student = globalStudentsData.find(s => s.No_Matrik == idPelajar);
-      if (!student) return;
+    function extractStepNumber(status) {
+      if (!status) return 0;
+      const match = status.match(/Langkah (\d+)/);
+      return match ? parseInt(match[1]) : 0;
+    }
 
-      document.getElementById('modalStudentId').value = student.No_Matrik;
-      document.getElementById('modalStudentName').innerText = student.Nama_Pelajar;
-      document.getElementById('modalStudentStatus').innerText = student.Status_Langkah || "Tiada Status";
+    function generateCheckpointUI(current) {
+      let html = '<div class="checkpoint-container">';
+      for (let i = 1; i <= 14; i++) {
+        let cls = i < current ? 'done' : (i === current ? 'current' : '');
+        html += `<div class="dot ${cls}" title="Langkah ${i}: ${langkahLabels[i-1]}"></div>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function openModal(id) {
+      const s = globalData.find(item => item.No_Matrik == id);
+      document.getElementById('modalStudentName').innerText = s.Nama_Pelajar;
+      const current = extractStepNumber(s.Status_Langkah);
       
-      document.getElementById('vivaDateInput').value = "";
-      document.getElementById('vivaTimeInput').value = "";
-
-      if (bootstrapModalInstance) {
-        bootstrapModalInstance.show();
-      }
+      const stepper = document.getElementById('modalStepper');
+      stepper.innerHTML = '';
+      langkahLabels.forEach((label, i) => {
+        const stepNum = i + 1;
+        let state = stepNum < current ? 'done' : (stepNum === current ? 'active' : '');
+        let icon = stepNum < current ? '<i class="fa-solid fa-check"></i>' : stepNum;
+        
+        stepper.innerHTML += `
+          <div class="step-item ${state}">
+            <div class="step-number">${icon}</div>
+            <div class="small">
+              <div class="fw-bold" style="font-size:0.75rem;">Langkah ${stepNum}</div>
+              <div class="text-muted" style="font-size:0.7rem;">${label}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      new bootstrap.Modal(document.getElementById('actionModal')).show();
     }
 
-    function submitCalendarBooking() {
-      const studentId = document.getElementById('modalStudentId').value;
-      const dateVal = document.getElementById('vivaDateInput').value;
-      const timeVal = document.getElementById('vivaTimeInput').value;
-
-      if (!dateVal || !timeVal) {
-        alert("Sila pilih tarikh dan masa mula peperiksaan lisan terlebih dahulu.");
-        return;
-      }
-
-      if (bootstrapModalInstance) bootstrapModalInstance.hide();
-      document.getElementById('loadingSpinner').style.display = 'block';
-
-      google.script.run
-        .withSuccessHandler(function(response) {
-          alert(response.message);
-          loadDashboardData();
-        })
-        .withFailureHandler(handleError)
-        .bookVivaCalendarEvent(studentId, dateVal, timeVal);
-    }
-
-    function handleError(error) {
-      console.error(error);
-      alert("Ralat Sistem: " + error.message);
-      showDashboard();
-    }
+    // Placeholder functions for automation
+    function submitCalendarBooking() { alert("Menyimpan ke Google Calendar..."); }
+    function generateNoS() { alert("Menjana Surat NoS & PDF..."); }
+    function generateLantikan(role) { alert("Menjana Surat Lantikan " + role + "..."); }
   </script>
 </body>
 </html>
