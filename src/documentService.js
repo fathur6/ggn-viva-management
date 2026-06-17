@@ -1,127 +1,137 @@
-// TODO: Masukkan ID fail Google Docs templat anda di sini
-const TEMPLATE_DOC_ID = "MASUKKAN_ID_GOOGLE_DOCS_TEMPLAT_ANDA_DI_SINI";
+// ID Google Docs Templat
+const TEMPLATE_NOS_ID = "1C-eaXo-_7oQWRIcrFrSFDasoxeSZFxrqMh5OTCsYI1E";
+const TEMPLATE_LANTIKAN_ID = "1ptdb-WM7W5SzDy6huxcXPkLRqv9Oprur8F9I2xkA7pk";
+
+// Pemetaan Lajur (Berdasarkan Struktur Terkini)
+const MAP = {
+  CALON: {
+    MATRIK: 0, NAMA: 1, PROGRAM: 4, TAJUK: 6, EMEL: 7, 
+    PENGERUSI: 13, PEM_LUAR: 15, PEM_DALAM: 17, WAKIL_DEKAN: 19, 
+    TARIKH_VIVA: 21, TEMPAT: 22, WEBEX: 23, STATUS: 24, FOLDER: 25, TARIKH_HANTAR: 26
+  },
+  DIREKTORI: { NAMA: 0, EMEL: 1, INSTITUSI: 3, KEPAKARAN: 7 }
+};
 
 /**
- * STRATEGI V2: Menjana Surat Pelantikan Menggunakan Konsep Relational Database
- * @param {string} studentId - No Matrik Calon
- * @param {string} examinerType - Jenis Lantikan (e.g., 'Pengerusi', 'Pemeriksa Dalam', 'Pemeriksa Luar')
+ * Helper: Ambil Data Calon
  */
-function generateExaminerLetterV2(studentId, examinerType) {
+function getCalonRecord(studentId) {
+  const data = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Calon").getDataRange().getDisplayValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][MAP.CALON.MATRIK] == studentId) return { rowIdx: i + 1, data: data[i] };
+  }
+  throw new Error("Rekod calon tidak dijumpai.");
+}
+
+/**
+ * Helper: Ambil Folder Calon
+ */
+function getTargetFolder(folderUrl, subFolderName) {
+  if (!folderUrl || !folderUrl.includes("folders/")) return DriveApp.getRootFolder();
+  const folderId = folderUrl.split("folders/")[1].split("?")[0];
+  const mainFolder = DriveApp.getFolderById(folderId);
+  const subFolders = mainFolder.getFoldersByName(subFolderName);
+  return subFolders.hasNext() ? subFolders.next() : mainFolder;
+}
+
+/**
+ * 1. FUNGSI MENJANA SURAT PEMAKLUMAN NoS (Langkah 1)
+ */
+function generateNoSLetter(studentId) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheetCalon = ss.getSheetByName("Calon");
-    const dataCalon = sheetCalon.getDataRange().getDisplayValues();
-    const headersCalon = dataCalon[0];
+    const record = getCalonRecord(studentId);
+    const calon = record.data;
     
-    // 1. Cari data Calon di jadual SSoT
-    let student = {};
-    let rowIndex = -1;
-    for (let i = 1; i < dataCalon.length; i++) {
-      if (dataCalon[i][0] == studentId) { // Lajur A: No_Matrik
-        rowIndex = i + 1;
-        headersCalon.forEach((header, idx) => { student[header] = dataCalon[i][idx]; });
-        break;
-      }
-    }
-    
-    if (rowIndex === -1) throw new Error("Data calon tidak ditemui.");
-
-    // 2. Tentukan nama pensyarah yang dilantik berdasarkan kategori butang
-    let staffName = "";
-    if (examinerType === "Pengerusi") staffName = student.Pengerusi;
-    else if (examinerType === "Pemeriksa Dalam") staffName = student.Pemeriksa_Dalam;
-    else if (examinerType === "Pemeriksa Luar") staffName = student.Pemeriksa_Luar;
-
-    if (!staffName || staffName === "-") {
-      throw new Error(`Nama untuk ${examinerType} belum diisi di dalam jadual Calon.`);
+    // Tetapkan Tarikh Akhir Hantar (3 bulan dari sekarang) jika kosong
+    let tarikhHantar = calon[MAP.CALON.TARIKH_HANTAR];
+    if (!tarikhHantar) {
+      let d = new Date();
+      d.setMonth(d.getMonth() + 3);
+      tarikhHantar = Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yyyy");
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Calon").getRange(record.rowIdx, MAP.CALON.TARIKH_HANTAR + 1).setValue(tarikhHantar);
     }
 
-    // 3. Panggil fungsi helper dari dbService untuk cari info Staf di jadual "Direktori"
-    const staffInfo = getStaffInfo(staffName);
-    if (!staffInfo) {
-      throw new Error(`Profil [${staffName}] tidak ditemui dalam jadual Direktori. Sila daftarkan emel staf terlebih dahulu.`);
-    }
-
-    // 4. Akses storan Drive Calon (Gunakan pelindung ralat jika URL Drive kosong)
-    let targetFolder;
-    if (student.Folder_Drive_URL && student.Folder_Drive_URL.includes("folders/")) {
-      const mainFolderId = student.Folder_Drive_URL.split("folders/")[1].split("?")[0];
-      const mainFolder = DriveApp.getFolderById(mainFolderId);
-      const subFolders = mainFolder.getFoldersByName("2. Surat Pelantikan & Jemputan");
-      if (subFolders.hasNext()) targetFolder = subFolders.next();
-    }
-    
-    // Jika tiada folder spesifik, simpan di Root Google Drive Urus Setia sebagai backup
-    if (!targetFolder) targetFolder = DriveApp.getRootFolder();
-
-    // 5. Salin templat Google Docs & Jalankan LOGIK MAIL MERGE
-    const templateFile = DriveApp.getFileById(TEMPLATE_DOC_ID);
-    const newDocFile = templateFile.makeCopy(`Surat Pelantikan ${examinerType} - ${student.Nama_Pelajar}`, targetFolder);
-    const doc = DocumentApp.openById(newDocFile.getId());
+    const folder = getTargetFolder(calon[MAP.CALON.FOLDER], "1. Kelulusan NoS");
+    const docFile = DriveApp.getFileById(TEMPLATE_NOS_ID).makeCopy(`Pemakluman NoS - ${calon[MAP.CALON.NAMA]}`, folder);
+    const doc = DocumentApp.openById(docFile.getId());
     const body = doc.getBody();
 
-    // Gantikan placeholders dalam dokumen templat
-    body.replaceText("{{Nama_Pemeriksa}}", staffInfo.Nama_Staf);
-    body.replaceText("{{Institusi_Pemeriksa}}", staffInfo.Institusi || "UniSZA");
-    body.replaceText("{{Kepakaran_Pemeriksa}}", staffInfo.Kepakaran || "-");
-    
-    body.replaceText("{{Nama_Pelajar}}", student.Nama_Pelajar);
-    body.replaceText("{{No_Matrik}}", student.No_Matrik);
-    body.replaceText("{{Nama_Program}}", student.Nama_Program);
-    body.replaceText("{{Tajuk_Penyelidikan}}", student.Tajuk_Penyelidikan);
-    body.replaceText("{{Tarikh_Viva}}", student.Tarikh_Viva || "Belum Ditetapkan");
+    // Gantikan Placeholder
+    body.replaceText("{{Nama_Pelajar}}", calon[MAP.CALON.NAMA]);
+    body.replaceText("{{No_Matrik}}", calon[MAP.CALON.MATRIK]);
+    body.replaceText("{{Nama_Program}}", calon[MAP.CALON.PROGRAM]);
+    body.replaceText("{{Tajuk_Penyelidikan}}", calon[MAP.CALON.TAJUK]);
+    body.replaceText("{{Tarikh_Akhir_Hantar}}", tarikhHantar);
     
     doc.saveAndClose();
-
-    // 6. Tukar dokumen kepada PDF & padam fail komponen draf (.docx sementara)
-    const pdfBlob = newDocFile.getAs(MimeType.PDF);
-    const pdfFile = targetFolder.createFile(pdfBlob);
-    newDocFile.setTrashed(true);
-
-    // 7. AUTOMASI EMEL: Hantar emel rasmi bersama lampiran PDF melalui Gmail Urus Setia
-    const emailSubject = `[URGENT] Pelantikan Sebagai ${examinerType} - Peperiksaan Lisan (VIVA) ${student.Nama_Pelajar} (${student.No_Matrik})`;
-    const emailBody = `
-      Assalamualaikum dan Salam Sejahtera,
-      
-      YBhg. Prof./Prof. Madya/Dr. ${staffInfo.Nama_Staf},
-      
-      Merujuk kepada keputusan Mesyuarat JAPSU, sukacitanya dimaklumkan bahawa pihak Fakulti bersetuju melantik YBhg. Prof./Prof. Madya/Dr. sebagai ${examinerType} untuk menilai tesis calon berikut:
-      
-      Nama Calon: ${student.Nama_Pelajar}
-      No. Matrik: ${student.No_Matrik}
-      Tajuk Tesis: ${student.Tajuk_Penyelidikan}
-      
-      Bersama-sama ini dilampirkan Surat Pelantikan rasmi dalam format PDF untuk rujukan dan tindakan YBhg. Prof./Prof. Madya/Dr. seterusnya.
-      
-      Segala kerjasama dan sumbangan kepakaran daripada pihak YBhg. Prof./Prof. Madya/Dr. amatlah dihargai oleh pihak pengurusan fakulti.
-      
-      Sekian, terima kasih.
-      
-      Urus Setia Pascasiswazah (PPS)
-      Sistem Automasi Pengurusan VIVA Fakulti
-    `;
-
-    // Ambil emel staf daripada hasil carian Direktori
-    const recipientEmail = staffInfo.Emel;
     
-    if (recipientEmail) {
-      GmailApp.sendEmail(recipientEmail, emailSubject, emailBody, {
-        attachments: [pdfFile.getBlob()]
-      });
-      
-      // 8. Kemaskini log status di Google Sheets SSoT secara real-time
-      sheetCalon.getRange(rowIndex, 21).setValue(`Langkah 4: Surat ${examinerType} Diemel`);
-    } else {
-      throw new Error(`Gagal menghantar emel kerana alamat emel untuk ${staffInfo.Nama_Staf} kosong.`);
+    // Convert to PDF & Email
+    const pdfBlob = docFile.getAs(MimeType.PDF);
+    folder.createFile(pdfBlob);
+    docFile.setTrashed(true);
+
+    const emailSubject = `PEMAKLUMAN KELULUSAN NOTIS PENYERAHAN TESIS (NOS) & ARAHAN PENGHANTARAN - ${calon[MAP.CALON.NAMA]}`;
+    const emailBody = `Tahniah! Rujuk lampiran PDF untuk kelulusan Notis Penyerahan Tesis (NoS) anda. Sila hantar tesis sebelum: ${tarikhHantar}.`;
+    
+    if(calon[MAP.CALON.EMEL]) {
+      GmailApp.sendEmail(calon[MAP.CALON.EMEL], emailSubject, emailBody, { attachments: [pdfBlob] });
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Calon").getRange(record.rowIdx, MAP.CALON.STATUS + 1).setValue("Langkah 1: Menunggu Tesis");
     }
 
-    return {
-      success: true,
-      message: `Surat Pelantikan ${examinerType} rasmi berjaya dijana dan diemel kepada ${staffInfo.Nama_Staf}!`
-    };
+    return { success: true, message: "Surat Pemakluman NoS berjaya dijana dan diemel kepada pelajar!" };
 
-  } catch (error) {
-    Logger.log("Ralat documentService V2: " + error.toString());
-    throw new Error(error.message);
-  }
+  } catch (error) { throw new Error("Ralat NoS: " + error.message); }
+}
+
+/**
+ * 2. FUNGSI MENJANA SURAT PELANTIKAN PENILAI / JAWATANKUASA
+ */
+function generateAppointmentLetter(studentId, peranan) {
+  try {
+    const record = getCalonRecord(studentId);
+    const calon = record.data;
+    
+    let namaStaf = "";
+    if (peranan === "Pengerusi") namaStaf = calon[MAP.CALON.PENGERUSI];
+    else if (peranan === "Pemeriksa Luar") namaStaf = calon[MAP.CALON.PEM_LUAR];
+    else if (peranan === "Pemeriksa Dalam") namaStaf = calon[MAP.CALON.PEM_DALAM];
+    else if (peranan === "Wakil Dekan") namaStaf = calon[MAP.CALON.WAKIL_DEKAN];
+
+    if (!namaStaf || namaStaf === "-") throw new Error(`Nama ${peranan} belum diisi.`);
+
+    const staffInfo = getStaffInfo(namaStaf); // Memanggil fungsi dari dbService.js
+    if (!staffInfo) throw new Error(`Profil [${namaStaf}] tiada dalam Direktori.`);
+
+    const folder = getTargetFolder(calon[MAP.CALON.FOLDER], "2. Surat Pelantikan & Jemputan");
+    const docFile = DriveApp.getFileById(TEMPLATE_LANTIKAN_ID).makeCopy(`Surat Lantikan ${peranan} - ${calon[MAP.CALON.NAMA]}`, folder);
+    const doc = DocumentApp.openById(docFile.getId());
+    const body = doc.getBody();
+
+    body.replaceText("{{Peranan}}", peranan.toUpperCase());
+    body.replaceText("{{Nama_Staf}}", staffInfo.Nama_Staf);
+    body.replaceText("{{Institusi_Staf}}", staffInfo.Institusi || "UniSZA");
+    body.replaceText("{{Nama_Pelajar}}", calon[MAP.CALON.NAMA]);
+    body.replaceText("{{No_Matrik}}", calon[MAP.CALON.MATRIK]);
+    body.replaceText("{{Tajuk_Penyelidikan}}", calon[MAP.CALON.TAJUK]);
+    body.replaceText("{{Tarikh_Viva}}", calon[MAP.CALON.TARIKH_VIVA] || "Akan Dimaklumkan");
+    body.replaceText("{{Masa_Viva}}", "Akan Dimaklumkan");
+    body.replaceText("{{Tempat_Viva}}", calon[MAP.CALON.TEMPAT] || "Akan Dimaklumkan");
+
+    doc.saveAndClose();
+
+    const pdfBlob = docFile.getAs(MimeType.PDF);
+    folder.createFile(pdfBlob);
+    docFile.setTrashed(true);
+
+    const emailSubject = `PELANTIKAN JAWATANKUASA PEMERIKSAAN TESIS (${peranan.toUpperCase()}) - ${calon[MAP.CALON.NAMA]}`;
+    const emailBody = `Assalamualaikum Wrm. Wbt. \n\nYBhg. Prof/Dr.,\nBersama-sama ini dilampirkan Surat Pelantikan rasmi.`;
+
+    if(staffInfo.Emel) {
+      GmailApp.sendEmail(staffInfo.Emel, emailSubject, emailBody, { attachments: [pdfBlob] });
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Calon").getRange(record.rowIdx, MAP.CALON.STATUS + 1).setValue(`Langkah 4: Surat ${peranan} Diemel`);
+    }
+
+    return { success: true, message: `Surat Lantikan ${peranan} berjaya dijana dan diemel kepada ${staffInfo.Nama_Staf}!` };
+
+  } catch (error) { throw new Error("Ralat Lantikan: " + error.message); }
 }
