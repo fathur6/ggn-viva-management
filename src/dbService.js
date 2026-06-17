@@ -1,39 +1,54 @@
 /**
- * Mengambil semua data calon daripada Google Sheets (SSoT)
- * untuk dipaparkan di Dashboard.
+ * Konfigurasi Pemetaan Lajur (Berdasarkan Mapping Baharu)
+ */
+const COL_MAPPING = {
+  CALON: {
+    NO_MATRIK: 0, NAMA: 1, EMAIL: 7, 
+    PENGERUSI: 13, PEM_LUAR: 15, PEM_DALAM: 17,
+    TARIKH_VIVA: 21, URL_DRIVE: 25, TARIKH_HANTAR: 26
+  },
+  DIREKTORI: {
+    NAMA_STAF: 0, EMEL: 1, INSTITUSI: 3, KEPAKARAN: 7
+  }
+};
+
+/**
+ * Mengambil data calon
  */
 function getStudentsData() {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    // Pastikan ia memanggil helaian "Calon" yang tepat
-    const sheet = ss.getSheetByName("Calon"); 
-    
-    if (!sheet) {
-      throw new Error("Helaian 'Calon' tidak dijumpai dalam Google Sheets. Sila pastikan ejaan betul.");
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("Calon");
+  const data = sheet.getDataRange().getDisplayValues();
+  
+  return data.slice(1).map(row => ({
+    id: row[COL_MAPPING.CALON.NO_MATRIK],
+    nama: row[COL_MAPPING.CALON.NAMA],
+    email: row[COL_MAPPING.CALON.EMAIL],
+    pengerusi: row[COL_MAPPING.CALON.PENGERUSI],
+    pemeriksaLuar: row[COL_MAPPING.CALON.PEM_LUAR],
+    pemeriksaDalam: row[COL_MAPPING.CALON.PEM_DALAM],
+    tarikhViva: row[COL_MAPPING.CALON.TARIKH_VIVA],
+    tarikhHantar: row[COL_MAPPING.CALON.TARIKH_HANTAR]
+  }));
+}
+
+/**
+ * Mencari maklumat staf dari Direktori
+ */
+function getStaffInfo(namaStaf) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("Direktori");
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][COL_MAPPING.DIREKTORI.NAMA_STAF].toString().trim() === namaStaf.toString().trim()) {
+      return {
+        Nama_Staf: data[i][COL_MAPPING.DIREKTORI.NAMA_STAF],
+        Emel: data[i][COL_MAPPING.DIREKTORI.EMEL],
+        Institusi: data[i][COL_MAPPING.DIREKTORI.INSTITUSI],
+        Kepakaran: data[i][COL_MAPPING.DIREKTORI.KEPAKARAN]
+      };
     }
-
-    // Menggunakan getDisplayValues() supaya format tarikh dan nombor kekal cantik
-    const data = sheet.getDataRange().getDisplayValues(); 
-    
-    // Jika sheet kosong (hanya ada tajuk/header)
-    if (data.length <= 1) return [];
-
-    const headers = data[0];
-    const students = [];
-
-    // Gelung (loop) untuk menukar data baris kepada objek JSON
-    for (let i = 1; i < data.length; i++) {
-      let studentObj = {};
-      for (let j = 0; j < headers.length; j++) {
-        studentObj[headers[j]] = data[i][j];
-      }
-      students.push(studentObj);
-    }
-    
-    return students;
-    
-  } catch (error) {
-    Logger.log("Ralat getStudentsData: " + error.toString());
-    throw new Error(error.message); // Hantar ralat ke frontend untuk dipaparkan
   }
+  return null;
 }
