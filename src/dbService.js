@@ -1,4 +1,4 @@
-const SPREADSHEET_ID = "1u4e5upuzRpV4W6jhLIYfRLGcCrLCbQSdPWX6vyEUArs";
+//const SPREADSHEET_ID = "1u4e5upuzRpV4W6jhLIYfRLGcCrLCbQSdPWX6vyEUArs";
 
 /**
  * KAMUS PEMETAAN BERPUSAT (Berpandukan Struktur SSoT Terkini)
