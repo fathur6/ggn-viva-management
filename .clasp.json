@@ -12,6 +12,7 @@
     ".json"
   ],
   "filePushOrder": [
+    "config.js",
     "Code.js",
     "dbService.js",
     "driveService.js",

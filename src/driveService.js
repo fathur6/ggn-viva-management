@@ -1,8 +1,7 @@
 /**
  * Global Configuration untuk Google Drive
- * Menggunakan ID Folder "Oral Exams" sebagai folder induk
+ * Dapatkan PARENT_FOLDER_ID dari src/config.js (tidak dijejak Git)
  */
-const PARENT_FOLDER_ID = "1Crj3hhYE0wARJhloM-iCUWbPiWydHSwU";
 
 /**
  * Helper: Cari sub-folder Viva-X dalam folder utama (boleh eksak atau prefix)

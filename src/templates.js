@@ -1,10 +1,10 @@
 /**
  * Peta ID Templat Google Docs untuk penjanaan surat automatik
- * Isi ID Docs yang sah untuk setiap templat sebelum digunakan
+ * Dapatkan TEMPLATE_NOS_ID & TEMPLATE_LANTIKAN_ID dari src/config.js
  */
 const TEMPLATES = {
-  L1_NOS:                   "1C-eaXo-_7oQWRIcrFrSFDasoxeSZFxrqMh5OTCsYI1E",
-  L4_LANTIKAN:              "1ptdb-WM7W5SzDy6huxcXPkLRqv9Oprur8F9I2xkA7pk",
+  L1_NOS:                   TEMPLATE_NOS_ID,
+  L4_LANTIKAN:              TEMPLATE_LANTIKAN_ID,
   // SLOT — isi ID Docs kemudian
   L4_BORANG_KEWANGAN:       "",
   L5_SURAT_PERMOHONAN_TNC:  "",

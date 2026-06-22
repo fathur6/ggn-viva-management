@@ -1,7 +1,7 @@
 /**
  * Global Configurations
+ * Dapatkan dari src/config.js (tidak dijejak Git)
  */
-const SPREADSHEET_ID = "1u4e5upuzRpV4W6jhLIYfRLGcCrLCbQSdPWX6vyEUArs";
 
 function doGet() {
   return HtmlService.createTemplateFromFile('index')

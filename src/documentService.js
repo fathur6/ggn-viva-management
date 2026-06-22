@@ -1,8 +1,7 @@
 /**
- * ID Google Docs Templat (akan digantikan oleh src/templates.js)
+ * ID Google Docs Templat — diperoleh dari src/config.js (tidak dijejak Git)
+ * Dapatkan TEMPLATE_NOS_ID & TEMPLATE_LANTIKAN_ID dari CONFIG.
  */
-const TEMPLATE_NOS_ID = "1C-eaXo-_7oQWRIcrFrSFDasoxeSZFxrqMh5OTCsYI1E";
-const TEMPLATE_LANTIKAN_ID = "1ptdb-WM7W5SzDy6huxcXPkLRqv9Oprur8F9I2xkA7pk";
 
 /**
  * Helper: Ambil rekod lengkap calon dari helaian Calon
