@@ -15,20 +15,12 @@ function getCalonRecord(studentId) {
 }
 
 /**
- * Helper: Cari sub-folder dalam folder calon ikut nama
+ * Helper: Dapatkan folder Viva-X untuk calon (auto-cipta jika tiada)
  */
-function getTargetFolder(folderUrl, subFolderName) {
-  if (!folderUrl || !folderUrl.includes("folders/")) return DriveApp.getRootFolder();
-  const folderId = folderUrl.split("folders/")[1].split("?")[0];
-  const mainFolder = DriveApp.getFolderById(folderId);
-  const subFolders = mainFolder.getFolders();
-  const prefix = subFolderName + " ";
-  while (subFolders.hasNext()) {
-    const f = subFolders.next();
-    const name = f.getName();
-    if (name === subFolderName || name.startsWith(prefix)) return f;
-  }
-  return mainFolder;
+function getTargetFolder(folderUrl, stepNum) {
+  const folderId = extractFolderId(folderUrl);
+  if (!folderId) return DriveApp.getRootFolder();
+  return getOrCreateStepFolder(folderId, stepNum);
 }
 
 /**
@@ -100,7 +92,7 @@ function generateNoSLetter(studentId) {
       SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Calon").getRange(record.rowIdx, DB_MAP.CALON.TARIKH_HANTAR + 1).setValue(tarikhHantar);
     }
 
-    const folder = getTargetFolder(calon[DB_MAP.CALON.FOLDER], "Viva-1 Kelulusan NoS");
+    const folder = getTargetFolder(calon[DB_MAP.CALON.FOLDER], 1);
     const result = _janaDanSimpanPdf(TEMPLATE_NOS_ID, folder, matrik, "Pemakluman_NoS", {
       "{{Tajuk_Penyelidikan}}": calon[DB_MAP.CALON.TAJUK],
       "{{Tarikh_Akhir_Hantar}}": tarikhHantar
@@ -141,7 +133,7 @@ function generateAppointmentLetter(studentId, peranan) {
     if (!staffInfo) throw new Error("Profil [" + namaStaf + "] tiada dalam Direktori.");
 
     const perananSnake = peranan.replace(/ /g, "_");
-    const folder = getTargetFolder(calon[DB_MAP.CALON.FOLDER], "Viva-4 Surat Pelantikan");
+    const folder = getTargetFolder(calon[DB_MAP.CALON.FOLDER], 4);
     const result = _janaDanSimpanPdf(TEMPLATE_LANTIKAN_ID, folder, matrik, "Lantikan_" + perananSnake, {
       "{{Peranan}}": peranan.toUpperCase(),
       "{{Nama_Staf}}": staffInfo.Nama_Staf,
@@ -193,8 +185,7 @@ function generateFromTemplate(studentId, kodTemplat, stepNum, placeholderMap, pe
     const calon = record.data;
     const matrik = calon[DB_MAP.CALON.MATRIK];
 
-    const folderName = "Viva-" + stepNum;
-    const folder = getTargetFolder(calon[DB_MAP.CALON.FOLDER], folderName);
+    const folder = getTargetFolder(calon[DB_MAP.CALON.FOLDER], stepNum);
     const result = _janaDanSimpanPdf(templateId, folder, matrik, "Surat_Keputusan_Viva", placeholderMap, calon);
 
     if (penerimaEmel && subjekEmel) {

@@ -16,7 +16,7 @@ function uploadScannedPdf(base64Data, fileName, noMatrik, stepNum) {
     if (!folderUrl || !folderUrl.includes("folders/")) throw new Error("Folder calon tidak sah.");
 
     const folderId = folderUrl.split("folders/")[1].split("?")[0];
-    const targetFolder = getStepFolder(folderId, stepNum);
+    const targetFolder = getOrCreateStepFolder(folderId, stepNum);
 
     const safeName = fileName.replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF\u00C0-\u024F ]/g, "_").replace(/\s+/g, "_");
     const pdfNameBase = noMatrik + "_" + safeName.replace(/\.pdf$/i, "");
@@ -70,7 +70,7 @@ function listStepFiles(noMatrik, stepNum) {
   const folderUrl = calon.Folder_Drive_URL;
   if (!folderUrl || !folderUrl.includes("folders/")) return [];
   const folderId = folderUrl.split("folders/")[1].split("?")[0];
-  const targetFolder = getStepFolder(folderId, stepNum);
+  const targetFolder = getOrCreateStepFolder(folderId, stepNum);
   const files = targetFolder.getFiles();
   const result = [];
   while (files.hasNext()) {

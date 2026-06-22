@@ -270,7 +270,7 @@ function getDocumentStatus(noMatrik) {
   const status = {};
 
   function _scanStep(stepNum) {
-    const targetFolder = getStepFolder(folderId, stepNum);
+    const targetFolder = getOrCreateStepFolder(folderId, stepNum);
     const files = targetFolder.getFiles();
     const result = [];
     while (files.hasNext()) {
