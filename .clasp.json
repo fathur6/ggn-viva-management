@@ -11,6 +11,18 @@
   "jsonExtensions": [
     ".json"
   ],
-  "filePushOrder": [],
+  "filePushOrder": [
+    "Code.js",
+    "dbService.js",
+    "driveService.js",
+    "templates.js",
+    "documentService.js",
+    "mailService.js",
+    "calendarService.js",
+    "workflowService.js",
+    "auditService.js",
+    "uploadService.js",
+    "notifications.js"
+  ],
   "skipSubdirectories": false
 }

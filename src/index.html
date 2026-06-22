@@ -1,247 +1,542 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="ms" data-theme="light">
 <head>
   <base target="_top">
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
   <title>VIVA SSoT Dashboard | UniSZA</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
-      --checkpoint-bg: #1a1d23;
-      --checkpoint-done: #00f2c3;
-      --checkpoint-pending: #2c313c;
+      --bg: #f1f5f9; --surface: #ffffff; --surface2: #f8fafc;
+      --text: #1e293b; --text2: #64748b; --border: #e2e8f0;
+      --primary: #3b82f6; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --check-done: #10b981; --check-pending: #3e4a5c;
+      --modal-header: linear-gradient(135deg, #0f172a, #1e293b);
+      --card-hover: #f1f5f9; --input-bg: #ffffff;
     }
-    .status-badge { font-size: 0.75rem; padding: 0.3em 0.6em; border-radius: 20px; }
-    .table-responsive { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-    
-    /* Checkpoint Visual Styles */
-    .checkpoint-container { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--checkpoint-pending); position: relative; transition: all 0.3s ease; }
-    .dot.done { background: var(--checkpoint-done); box-shadow: 0 0 8px var(--checkpoint-done); }
-    .dot.current { background: #ffc107; border: 2px solid #fff; transform: scale(1.3); }
-    .dot.done::after { content: '✓'; color: #1a1d23; font-size: 8px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
-    
-    /* Stepper labels in Modal */
-    .stepper-wrapper { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 10px; }
-    .step-item { display: flex; align-items: center; gap: 15px; padding: 8px; border-radius: 8px; transition: 0.2s; }
-    .step-item.active { background: #f0f7ff; border-left: 4px solid #0d6efd; }
-    .step-number { width: 28px; height: 28px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; }
-    .step-item.done .step-number { background: #198754; color: white; }
-    .step-item.active .step-number { background: #0d6efd; color: white; }
-    
-    /* Custom link style for student name */
+    [data-theme="dark"] {
+      --bg: #0f172a; --surface: #1e293b; --surface2: #1a2333;
+      --text: #e2e8f0; --text2: #94a3b8; --border: #334155;
+      --primary: #60a5fa; --success: #34d399; --warning: #fbbf24; --danger: #f87171;
+      --check-done: #34d399; --check-pending: #475569;
+      --modal-header: linear-gradient(135deg, #020617, #0f172a);
+      --card-hover: #1e293b; --input-bg: #1e293b;
+    }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); transition: 0.3s; }
+    .table-responsive, .card { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-radius: 12px; }
+    .table { color: var(--text); }
+    .table thead { color: var(--text2); }
+    .text-muted { color: var(--text2) !important; }
+    .form-control, .form-select { background: var(--input-bg); color: var(--text); border-color: var(--border); }
+    .badge.bg-light { background: var(--surface2) !important; color: var(--text2) !important; border-color: var(--border) !important; }
+    .stepper-wrapper { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; }
+    .stepper-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--check-pending); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #fff; cursor: pointer; transition: 0.2s; position: relative; }
+    .stepper-dot.done { background: var(--check-done); }
+    .stepper-dot.current { background: var(--primary); transform: scale(1.2); box-shadow: 0 0 8px var(--primary); }
+    .stepper-dot:hover { filter: brightness(1.3); }
+
+    .checkpoint-container { display: flex; align-items: center; gap: 3px; padding: 3px 0; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--check-pending); transition: 0.3s; }
+    .dot.done { background: var(--check-done); box-shadow: 0 0 5px var(--check-done); }
+    .dot.current { background: var(--primary); border: 2px solid #fff; transform: scale(1.4); }
+    .dot.done::after { content: '✓'; color: #000; font-size: 6px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
+
     .student-link { cursor: pointer; transition: color 0.2s; }
-    .student-link:hover { text-decoration: underline !important; color: #0a58ca !important; }
+    .student-link:hover { text-decoration: underline !important; color: var(--primary) !important; }
+
+    .sla-card { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .sla-red { background: #fce4e4; color: #dc3545; }
+    .sla-amber { background: #fff3e0; color: #fd7e14; }
+    .sla-green { background: #e6f9ee; color: #198754; }
+
+    .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: 0.2s; background: var(--surface2); }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: #eff6ff; }
+    .upload-zone i { font-size: 1.8rem; color: var(--text2); }
+
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+    .toast-item { padding: 12px 20px; border-radius: 10px; color: white; font-weight: 500; margin-top: 8px; min-width: 280px; box-shadow: 0 5px 20px rgba(0,0,0,0.15); animation: slideIn 0.3s ease; }
+    .toast-success { background: var(--success); }
+    .toast-error { background: var(--danger); }
+    .toast-info { background: var(--primary); }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+
+    .modal-header { background: var(--modal-header); color: white; }
+    .modal-body { background: var(--surface); color: var(--text); }
+    .modal-footer { background: var(--surface2); border-color: var(--border); }
+
+    .nav-tabs .nav-link { color: var(--text2); border: none; padding: 8px 16px; font-size: 0.8rem; font-weight: 600; border-radius: 8px 8px 0 0; }
+    .nav-tabs .nav-link.active { color: var(--primary); background: var(--surface); border-bottom: 2px solid var(--primary); }
+
+    .doc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; transition: 0.2s; }
+    .doc-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+    .doc-card .badge { font-size: 0.65rem; }
+    .badge-generated { background: #d1fae5; color: #065f46; }
+    .badge-not-generated { background: #f3f4f6; color: #6b7280; }
+    .badge-changed { background: #fef3c7; color: #92400e; }
+    .badge-na { background: transparent; color: var(--text2); }
+
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .tl-item { position: relative; margin-bottom: 16px; padding-left: 8px; }
+    .tl-dot { position: absolute; left: -20px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--primary); border: 2px solid var(--surface); }
+    .tl-item.step-done .tl-dot { background: var(--success); }
+
+    .profil-kad { background: var(--surface2); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+    .profil-kad strong { display: block; font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .dark-toggle { cursor: pointer; border: none; background: none; color: inherit; font-size: 1.1rem; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .dark-toggle:hover { background: rgba(255,255,255,0.1); }
+    .skeleton { background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: skel 1.5s infinite; border-radius: 6px; height: 14px; margin-bottom: 8px; }
+    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .tab-panel { max-height: 55vh; overflow-y: auto; padding-right: 6px; }
+    .btn-soft { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+    .btn-soft:hover { background: var(--card-hover); }
+
+    .action-header { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; padding: 12px 16px; border-radius: 10px 10px 0 0; margin: -4px -4px 12px -4px; }
   </style>
 </head>
 <body class="bg-light">
 
-  <div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle text-center" style="z-index: 1050; display: block;">
-    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-2 text-secondary fw-semibold">Sinkronisasi Data SSoT...</p>
-  </div>
+<div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle text-center" style="z-index:1050;display:block;">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
+  <p class="mt-2 fw-semibold" style="color:var(--text2);">Sinkronisasi Data SSoT...</p>
+</div>
 
-  <div class="container-fluid px-4 py-4" id="mainContent" style="display: none;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div id="mainContent" style="display:none;">
+  <div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <h1 class="h3 text-dark fw-bold m-0"><i class="fa-solid fa-gauge-high"></i> Dashboard VIVA 14-Langkah</h1>
-        <p class="text-muted small m-0">Sistem Automasi Peperiksaan Lisan (Master & PhD)</p>
+        <h1 class="h4 fw-bold m-0"><i class="fa-solid fa-gauge-high me-2 text-primary"></i>Dashboard VIVA 14-Langkah</h1>
+        <p class="small m-0" style="color:var(--text2);">Sistem Automasi Peperiksaan Lisan (Master & PhD)</p>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-white shadow-sm border" onclick="loadDashboardData()"><i class="fa-solid fa-rotate"></i> Kemaskini</button>
+      <div class="d-flex gap-2 align-items-center">
+        <button class="dark-toggle" onclick="toggleDarkMode()" title="Tukar Tema" id="darkToggle"><i class="fa-solid fa-moon"></i></button>
+        <button class="btn btn-soft btn-sm rounded-pill px-3" onclick="loadDashboardData()"><i class="fa-solid fa-rotate me-1"></i>Kemaskini</button>
       </div>
     </div>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
-        <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><i class="fa-solid fa-users fa-xl"></i></div>
-        <div><small class="text-muted d-block">Jumlah Calon</small><h4 class="m-0 fw-bold" id="metricTotal">0</h4></div>
-      </div></div></div>
-      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
-        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><i class="fa-solid fa-hourglass-start fa-xl"></i></div>
-        <div><small class="text-muted d-block">Fasa Persediaan</small><h4 class="m-0 fw-bold" id="metricPraViva">0</h4></div>
-      </div></div></div>
-      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
-        <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info"><i class="fa-solid fa-microphone-lines fa-xl"></i></div>
-        <div><small class="text-muted d-block">Fasa Peperiksaan</small><h4 class="m-0 fw-bold" id="metricViva">0</h4></div>
-      </div></div></div>
-      <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3">
-        <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success"><i class="fa-solid fa-circle-check fa-xl"></i></div>
-        <div><small class="text-muted d-block">Selesai</small><h4 class="m-0 fw-bold" id="metricPembetulan">0</h4></div>
-      </div></div></div>
+    <!-- Tab Navigasi Utama -->
+    <ul class="nav nav-pills mb-3 gap-1" id="mainTabs">
+      <li class="nav-item"><a class="nav-link active small fw-bold px-3" href="#" onclick="switchMainTab('dashboard')"><i class="fa-solid fa-table-list me-1"></i>Papan Pemuka</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('direktori')"><i class="fa-solid fa-address-book me-1"></i>Direktori</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('takwim')"><i class="fa-solid fa-calendar-week me-1"></i>Takwim</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('laporan')"><i class="fa-solid fa-chart-bar me-1"></i>Laporan</a></li>
+    </ul>
+
+    <!-- Tab Dashboard -->
+    <div id="tabDashboard">
+      <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3"><div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><i class="fa-solid fa-users fa-lg"></i></div><div><small class="text-muted d-block">Jumlah Calon</small><h4 class="m-0 fw-bold" id="metricTotal">0</h4></div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3"><div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><i class="fa-solid fa-hourglass-start fa-lg"></i></div><div><small class="text-muted d-block">Persediaan (L1-4)</small><h4 class="m-0 fw-bold" id="metricPraViva">0</h4></div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3"><div class="bg-info bg-opacity-10 p-3 rounded-circle text-info"><i class="fa-solid fa-microphone-lines fa-lg"></i></div><div><small class="text-muted d-block">Peperiksaan (L5-12)</small><h4 class="m-0 fw-bold" id="metricViva">0</h4></div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3"><div class="bg-success bg-opacity-10 p-3 rounded-circle text-success"><i class="fa-solid fa-circle-check fa-lg"></i></div><div><small class="text-muted d-block">Pembetulan (L13-14)</small><h4 class="m-0 fw-bold" id="metricPembetulan">0</h4></div></div></div></div>
+      </div>
+      <div class="d-flex gap-3 align-items-center mb-3">
+        <div class="input-group" style="max-width:200px;"><span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Cari..." oninput="filterTable()"></div>
+        <select class="form-select form-select-sm" style="max-width:140px;" id="filterFasa" onchange="filterTable()"><option value="">Semua Fasa</option><option value="pra">L1-4</option><option value="viva">L5-12</option><option value="pasca">L13-14</option></select>
+        <span class="badge bg-light text-dark border ms-auto" id="filterCount">0 calon</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead><tr><th style="width:18%">Calon</th><th style="width:28%">14 Checkpoint</th><th class="text-center" style="width:7%">SLA</th><th style="width:17%">Jawatankuasa</th><th style="width:10%">Tarikh</th><th class="text-center" style="width:7%"></th></tr></thead>
+          <tbody id="studentTableBody"></tbody>
+        </table>
+      </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="bg-light">
-          <tr>
-            <th style="width: 20%;">Calon & Program</th>
-            <th style="width: 35%;">Aliran Kerja (14 Checkpoints)</th>
-            <th>Jawatankuasa</th>
-            <th>Tarikh Viva</th>
-            <th class="text-center">Tindakan</th>
-          </tr>
-        </thead>
-        <tbody id="studentTableBody"></tbody>
-      </table>
-    </div>
+    <!-- Tab Direktori -->
+    <div id="tabDirektori" class="d-none"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Nama</th><th>Emel</th><th>Institusi</th><th>Kepakaran</th></tr></thead><tbody id="direktoriBody"></tbody></table></div></div>
+
+    <!-- Tab Takwim -->
+    <div id="tabTakwim" class="d-none"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Calon</th><th>Matrik</th><th>Tarikh</th><th>Status</th></tr></thead><tbody id="takwimBody"></tbody></table></div></div>
+
+    <!-- Tab Laporan -->
+    <div id="tabLaporan" class="d-none"><div class="row g-3" id="laporanContent"></div></div>
   </div>
+</div>
 
-  <div class="modal fade" id="actionModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-dark text-white p-4">
-          <h5 class="modal-title"><i class="fa-solid fa-user-gear"></i> Pengurusan Calon: <span id="modalStudentName"></span></h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- ====== MODAL UTAMA ====== -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header p-3">
+        <h5 class="modal-title fs-6"><i class="fa-solid fa-user-gear me-2"></i><span id="modalStudentName"></span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <!-- Stepper -->
+        <div class="px-3 pt-3 pb-2" style="background:var(--surface2);">
+          <div class="stepper-wrapper" id="modalStepper"></div>
         </div>
-        <div class="modal-body p-4">
-          <div class="row">
-            <div class="col-md-4 border-end">
-              <h6 class="fw-bold mb-3"><i class="fa-solid fa-list-check"></i> Status Aliran Kerja</h6>
-              <div class="stepper-wrapper" id="modalStepper">
-                </div>
-            </div>
-            <div class="col-md-8 px-4">
-              <div class="alert alert-info py-2 small"><i class="fa-solid fa-circle-info"></i> Sila lengkapkan tugasan bagi langkah semasa untuk menggerakkan checkpoint.</div>
-              
-              <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                  <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-calendar-day"></i> Langkah 3: Penetapan Viva</h6>
-                  <div class="row g-2">
-                    <div class="col-6"><label class="small fw-bold">Tarikh</label><input type="date" id="vivaDateInput" class="form-control form-control-sm"></div>
-                    <div class="col-6"><label class="small fw-bold">Masa</label><input type="time" id="vivaTimeInput" class="form-control form-control-sm">
-                    <small class="text-muted italic" style="font-size: 0.7rem;">*Biarkan kosong jika belum pasti.</small></div>
-                  </div>
-                  <button class="btn btn-primary btn-sm mt-3 w-100" onclick="submitCalendarBooking()"><i class="fa-solid fa-paper-plane"></i> Simpan & Hantar Jemputan</button>
-                </div>
-              </div>
-
-              <div class="card shadow-sm">
-                <div class="card-body">
-                  <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-file-pdf"></i> Penjanaan Surat Automatik</h6>
-                  <div class="d-grid gap-2">
-                    <button class="btn btn-outline-dark btn-sm text-start" onclick="generateNoS()"><i class="fa-solid fa-file-signature text-danger"></i> 1. Surat Pemakluman NoS (Langkah 1)</button>
-                    <button class="btn btn-outline-dark btn-sm text-start" onclick="generateLantikan('Pengerusi')"><i class="fa-solid fa-user-tie text-primary"></i> 2. Surat Lantikan Pengerusi (Langkah 4)</button>
-                    <button class="btn btn-outline-dark btn-sm text-start" onclick="generateLantikan('Pemeriksa Luar')"><i class="fa-solid fa-globe text-success"></i> 3. Surat Lantikan Pemeriksa Luar (Langkah 4)</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Tab Navigasi Modal -->
+        <ul class="nav nav-tabs px-3" id="modalNavTabs">
+          <li class="nav-item"><a class="nav-link active" href="#" onclick="switchModalTab('tindakan')">📋 Tindakan</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="switchModalTab('dokumen')">📁 Dokumen</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="switchModalTab('sejarah')">🕐 Sejarah</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="switchModalTab('profil')">👤 Profil</a></li>
+        </ul>
+        <!-- Panel Tab -->
+        <div class="tab-panel p-3" id="panelTindakan"></div>
+        <div class="tab-panel p-3 d-none" id="panelDokumen"></div>
+        <div class="tab-panel p-3 d-none" id="panelSejarah"></div>
+        <div class="tab-panel p-3 d-none" id="panelProfil"></div>
       </div>
     </div>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    let globalData = [];
-    const langkahLabels = [
-      "Notis Penyerahan Tesis (NoS)", "Penerimaan Dokumen Serahan", "Penetapan Tarikh Viva", 
-      "Pelantikan Jawatankuasa", "Penghantaran Tesis ke Penilai", "Penerimaan Laporan Penilai", 
-      "Pra-Viva / Taklimat", "Sesi Viva Voce", "Keputusan & Borang Pembetulan", 
-      "Proses Pembetulan Tesis", "Pengesahan Pembetulan", "Perakuan Fakulti", 
-      "Kelulusan Senat", "Penyerahan Hardbound & Graduasi"
-    ];
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
 
-    document.addEventListener("DOMContentLoaded", loadDashboardData);
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let globalData = [], modalMatrik = null, modalStep = 0, docStatus = {};
+  const langkahLabels = [
+    "Terima Kelulusan NoS JAPSU","Terima Tesis & PPS17/PPS25","Penetapan Tarikh & Kalendar",
+    "Surat Pelantikan Penilai","Pengesahan Tarikh & Pelantikan JKPT","Surat Jemputan Rasmi Viva",
+    "Emel 3 Hari Sebelum Viva","Emel 1 Hari Sebelum Viva","Emel Hari Viva (Semasa Sesi)",
+    "Terima Laporan Pasca Viva","Edar Dokumen & Bayaran Hono","Surat Keputusan & Dokumen Pelajar",
+    "Terima Tesis Pembetulan","Edar PPS-19 & Senat"
+  ];
 
-    function loadDashboardData() {
-      document.getElementById('loadingSpinner').style.display = 'block';
-      google.script.run.withSuccessHandler(renderDashboard).getStudentsData();
+  document.addEventListener("DOMContentLoaded", ()=>{ loadDashboardData(); initDarkMode(); });
+
+  /* ====== DARK MODE ====== */
+  function initDarkMode() {
+    const saved = localStorage.getItem('vivaDark');
+    if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('darkToggle').innerHTML='<i class="fa-solid fa-sun"></i>'; }
+  }
+  function toggleDarkMode() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('vivaDark', next);
+    document.getElementById('darkToggle').innerHTML = next === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+  }
+
+  /* ====== MAIN TABS ====== */
+  function switchMainTab(tab) {
+    document.querySelectorAll('#mainContent [id^="tab"]').forEach(el => el.classList.add('d-none'));
+    document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('d-none');
+    document.querySelectorAll('#mainTabs .nav-link').forEach(l => l.classList.remove('active'));
+    event.target.classList.add('active');
+    if (tab === 'direktori') loadDirektori();
+    else if (tab === 'takwim') loadTakwim();
+    else if (tab === 'laporan') loadLaporan();
+  }
+
+  function loadDirektori() {
+    google.script.run.withSuccessHandler(d => {
+      const tbody = document.getElementById('direktoriBody');
+      tbody.innerHTML = !d||!d.length ? '<tr><td colspan="4" class="text-center py-3 text-muted">Tiada data.</td></tr>' :
+        d.map(r => `<tr><td class="fw-bold">${r.nama||'-'}</td><td><small>${r.emel||'-'}</small></td><td>${r.institusi||'-'}</td><td>${r.kepakaran||'-'}</td></tr>`).join('');
+    }).getDirektoriData();
+  }
+  function loadTakwim() {
+    const d = globalData.filter(s=>s.Tarikh_Viva&&s.Tarikh_Viva!=='TBC');
+    document.getElementById('takwimBody').innerHTML = !d.length ? '<tr><td colspan="4" class="text-center py-3 text-muted">Tiada tarikh Viva.</td></tr>' :
+      d.map(s=>`<tr><td class="fw-bold">${s.Nama_Pelajar||'-'}</td><td>${s.No_Matrik}</td><td><span class="text-success fw-bold">${s.Tarikh_Viva}</span></td><td>${s.Status_Langkah||'-'}</td></tr>`).join('');
+  }
+  function loadLaporan() {
+    google.script.run.withSuccessHandler(r=>{
+      const l = Object.keys(r.taburan).filter(k=>k.startsWith('L'));
+      document.getElementById('laporanContent').innerHTML =
+        '<div class="col-md-6"><div class="card border-0 shadow-sm p-3"><h6 class="fw-bold mb-3">Taburan Calon</h6>'+
+        l.map(k=>`<div class="d-flex align-items-center mb-2"><span class="small fw-bold me-2" style="width:28px">${k.replace('L','L')}</span><div class="flex-grow-1 bg-light rounded-pill" style="height:8px;"><div class="bg-primary rounded-pill" style="width:${r.jumlahCalon>0?Math.round(r.taburan[k]/r.jumlahCalon*100):0}%;height:100%"></div></div><span class="small ms-2">${r.taburan[k]}</span></div>`).join('')+
+        '</div></div><div class="col-md-6"><div class="card border-0 shadow-sm p-3"><h6 class="fw-bold mb-3">Ringkasan</h6><p>Jumlah Calon: <strong>${r.jumlahCalon}</strong></p><p>Belum Mula: <strong>${r.taburan['Belum_Mula']||0}</strong></p><p>Selesai: <strong>${r.taburan['Selesai']||0}</strong></p></div></div>';
+    }).auditGetLaporanTaburan();
+  }
+
+  /* ====== DASHBOARD ====== */
+  function loadDashboardData() {
+    const spinner = document.getElementById('loadingSpinner');
+    if (spinner) spinner.style.display='block';
+    google.script.run
+      .withSuccessHandler(data => {
+        try { renderDashboard(data); } catch(e) { showToast('Ralat paparan: '+e.message,'error'); }
+        if (spinner) spinner.style.display='none';
+      })
+      .withFailureHandler(e => {
+        showToast(e.message,'error');
+        if (spinner) spinner.style.display='none';
+        document.getElementById('mainContent').style.display='block';
+      })
+      .getStudentsData();
+  }
+
+  function renderDashboard(data) {
+    globalData = data; let cP=0,cV=0,cS=0,vC=0;
+    const tbody = document.getElementById('studentTableBody'); tbody.innerHTML='';
+    const ff = document.getElementById('filterFasa').value, sv = document.getElementById('searchInput').value.toLowerCase();
+
+    data.forEach(s=>{
+      const cs = extractStepNumber(s.Status_Langkah);
+      if (cs>=1&&cs<=4) cP++; else if (cs>=13) cS++; else if (cs>=5) cV++;
+      const fa = cs<=4?'pra':(cs>=13?'pasca':'viva');
+      if (ff && ff!==fa) return;
+      if (sv && !(s.Nama_Pelajar + s.No_Matrik).toLowerCase().includes(sv)) return;
+      vC++;
+      tbody.insertAdjacentHTML('beforeend',
+        `<tr><td><a href="#" class="fw-bold text-primary text-decoration-none student-link" onclick="openModal('${s.No_Matrik}');return false;">${s.Nama_Pelajar||'-'}</a><br><small class="text-muted">${s.No_Matrik} | ${s.Nama_Program||'PhD'}</small></td><td>${genDots(cs)}<div class="mt-1"><span class="badge bg-light text-dark border fw-normal" style="font-size:0.6rem">${s.Status_Langkah||'Belum Mula'}</span></div></td><td class="text-center">${slaBadge(cs)}</td><td><small><strong>P:</strong>${s.Pengerusi||'-'}<br><strong>SV:</strong>${s.Penyelia_Utama||'-'}</small></td><td><small class="text-success fw-bold">${s.Tarikh_Viva||'TBC'}</small></td><td class="text-center"><button class="btn btn-sm btn-primary rounded-pill px-3" onclick="openModal('${s.No_Matrik}')">Kawal</button></td></tr>`);
+    });
+    document.getElementById('metricTotal').innerText=vC; document.getElementById('metricPraViva').innerText=cP;
+    document.getElementById('metricViva').innerText=cV; document.getElementById('metricPembetulan').innerText=cS;
+    document.getElementById('filterCount').innerText=vC+' calon';
+    document.getElementById('loadingSpinner').style.display='none'; document.getElementById('mainContent').style.display='block';
+  }
+
+  function extractStepNumber(s) { if(!s)return 0; const m=s.toString().match(/Langkah (\d+)/); return m?parseInt(m[1],10):0; }
+  function genDots(c){ let h='<div class="checkpoint-container">'; for(let i=1;i<=14;i++){ let cl=i<c?'done':(i===c?'current':''); h+=`<div class="dot ${cl}" title="L${i}: ${langkahLabels[i-1]}"></div>`; } return h+'</div>'; }
+  function slaBadge(s){ return s===0?'<span class="sla-card sla-green">Baru</span>':(s>=14?'<span class="sla-card sla-green">Selesai</span>':'<span class="sla-card sla-amber">L'+s+'</span>'); }
+  function filterTable(){ renderDashboard(globalData); }
+
+  /* ====== MODAL ====== */
+  function openModal(matrik) {
+    modalMatrik = matrik;
+    document.getElementById('modalStudentName').innerText = matrik;
+    document.getElementById('panelTindakan').innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+    document.getElementById('panelDokumen').innerHTML = '';
+    document.getElementById('panelSejarah').innerHTML = '';
+    document.getElementById('panelProfil').innerHTML = '';
+
+    const s = globalData.find(i=>i.No_Matrik==matrik);
+    if (s) {
+      document.getElementById('modalStudentName').innerText = s.Nama_Pelajar + ' | ' + matrik;
+      modalStep = extractStepNumber(s.Status_Langkah);
+    } else modalStep = 0;
+
+    // Stepper
+    const st = document.getElementById('modalStepper'); st.innerHTML='';
+    for(let i=1;i<=14;i++){
+      let cl=i<modalStep?'done':(i===modalStep?'current':'');
+      st.innerHTML += `<div class="stepper-dot ${cl}" title="L${i}: ${langkahLabels[i-1]}" onclick="renderStepActions(${i})">${i}</div>`;
     }
 
-    function renderDashboard(data) {
-      globalData = data;
-      const tbody = document.getElementById('studentTableBody');
-      tbody.innerHTML = '';
-      
-      let countPra = 0, countViva = 0, countSelesai = 0;
+    new bootstrap.Modal(document.getElementById('actionModal')).show();
+    switchModalTab('tindakan');
+    renderStepActions(modalStep===0?1:modalStep+1);
 
-      data.forEach(s => {
-        const currentStep = extractStepNumber(s.Status_Langkah);
-        if (currentStep <= 4) countPra++;
-        else if (currentStep >= 13) countSelesai++;
-        else countViva++;
+    google.script.run.withSuccessHandler(r=>{ docStatus=r; renderStepActions(modalStep===0?1:modalStep+1); }).getDocumentStatus(matrik);
+    google.script.run.withSuccessHandler(renderAuditTimeline).auditGetTrail(matrik);
+    google.script.run.withSuccessHandler(renderProfil).getStudentFull(matrik);
+  }
 
-        const checkpointUI = generateCheckpointUI(currentStep);
+  function switchModalTab(tab) {
+    ['Tindakan','Dokumen','Sejarah','Profil'].forEach(t=>document.getElementById('panel'+t).classList.add('d-none'));
+    document.getElementById('panel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('d-none');
+    document.querySelectorAll('#modalNavTabs .nav-link').forEach(l=>l.classList.remove('active'));
+    event.target.classList.add('active');
+    if (tab==='dokumen') renderDocTab();
+    if (tab==='sejarah') google.script.run.withSuccessHandler(renderAuditTimeline).auditGetTrail(modalMatrik);
+    if (tab==='profil') google.script.run.withSuccessHandler(renderProfil).getStudentFull(modalMatrik);
+  }
 
-        const row = `
-          <tr>
-            <td>
-              <a href="#" class="fw-bold text-primary text-decoration-none student-link" onclick="openModal('${s.No_Matrik}'); return false;" title="Klik untuk papar panel urus setia">${s.Nama_Pelajar || '-'}</a>
-              <br><small class="text-muted">${s.No_Matrik} | ${s.Nama_Program || 'PhD'}</small>
-            </td>
-            <td>
-              ${checkpointUI}
-              <div class="mt-1"><span class="badge bg-light text-dark border fw-normal" style="font-size:0.65rem;">${s.Status_Langkah || 'Mula'}</span></div>
-            </td>
-            <td><small><strong>Pengerusi:</strong> ${s.Pengerusi || '-'}<br><strong>SV:</strong> ${s.Penyelia_Utama || '-'}</small></td>
-            <td><small class="text-success fw-bold"><i class="fa-solid fa-calendar-day"></i> ${s.Tarikh_Viva || 'TBC'}</small></td>
-            <td class="text-center">
-              <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="openModal('${s.No_Matrik}')">Kawal</button>
-            </td>
-          </tr>
-        `;
-        tbody.insertAdjacentHTML('beforeend', row);
+  /* ====== RENDER STEP ACTIONS ====== */
+  function renderStepActions(stepNum) {
+    const panel = document.getElementById('panelTindakan');
+    const label = langkahLabels[stepNum-1];
+    let html = `<div class="action-header"><strong>Langkah ${stepNum}:</strong> ${label}</div>`;
+
+    if (stepNum===1) {
+      const st = docStatus['L1'];
+      html += _cardSurat('Pemakluman NoS', 'Langkah 1 — Surat kelulusan Notis Penyerahan Tesis', st, 'L1:');
+    } else if (stepNum===2) {
+      html += `<div class="alert alert-info py-2 small mb-2">Terima tesis, PPS17, PPS25 daripada pelajar. Buka fail & cetak kelulusan NOS JAPSU.</div>
+      <div class="upload-zone mb-2" id="dropZoneL2" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event,2,'dropZoneL2')" onclick="document.getElementById('fileInputL2').click()"><i class="fa-solid fa-cloud-arrow-up"></i><p class="mb-0 mt-1 small text-muted">Seret & lepas PDF Tesis / PPS17 / PPS25 di sini</p></div>
+      <input type="file" id="fileInputL2" accept="application/pdf" style="display:none" onchange="handleFileSelect(this,2,'dropZoneL2')" multiple>
+      <div class="mb-2 small" id="fileListL2"></div>
+      <button class="btn btn-sm btn-outline-success" onclick="execManualAdvance(2)">Tandakan Selesai</button>`;
+    } else if (stepNum===3) {
+      html += `<div class="alert alert-info py-2 small mb-2">Semak & susun jadual viva, masuk ke Google Calendar.</div>
+      <div class="row g-2 mb-2"><div class="col-6"><label class="small fw-bold">Tarikh</label><input type="date" id="vivaDate" class="form-control form-control-sm"></div><div class="col-3"><label class="small fw-bold">Masa</label><input type="time" id="vivaTime" class="form-control form-control-sm"></div><div class="col-3"><label class="small fw-bold">Tempat</label><input type="text" id="vivaPlace" class="form-control form-control-sm" placeholder="Bilik/Webex"></div></div>
+      <div class="mb-2"><label class="small fw-bold">Link Webex</label><input type="text" id="vivaWebex" class="form-control form-control-sm" placeholder="https://..."></div>
+      <button class="btn btn-primary btn-sm w-100" onclick="execStep3()"><i class="fa-solid fa-calendar-plus me-1"></i>Tempah Slot Viva</button>`;
+    } else if (stepNum===4) {
+      html += `<div class="alert alert-info py-2 small mb-2">Jana surat pelantikan untuk Pemeriksa Dalam, Pemeriksa Luar (Local/Intl), s.k. Penyelia.</div>`;
+      const peranan = ['Pengerusi','Pemeriksa_Luar','Pemeriksa_Dalam','Wakil_Dekan'];
+      const icons = {'Pengerusi':'fa-user-tie','Pemeriksa_Luar':'fa-globe','Pemeriksa_Dalam':'fa-building-columns','Wakil_Dekan':'fa-user'};
+      peranan.forEach(p=>{
+        const key = 'L4_'+p; const st = docStatus[key] || {}; const label = p.replace(/_/g,' ');
+        html += _cardSurat('Lantikan '+label, 'Langkah 4 — '+label, st, 'L4:'+p);
       });
-
-      document.getElementById('metricTotal').innerText = data.length;
-      document.getElementById('metricPraViva').innerText = countPra;
-      document.getElementById('metricViva').innerText = countViva;
-      document.getElementById('metricPembetulan').innerText = countSelesai;
-      
-      document.getElementById('loadingSpinner').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
+    } else if (stepNum===5) {
+      html += `<div class="alert alert-info py-2 small mb-2">Pengesahan tarikh dengan IE/EE. Hubungi Pengerusi & Wakil Dekan untuk JKPT. Block kalendar.</div>
+      <button class="btn btn-primary btn-sm w-100 mb-2" onclick="execStep5Block()"><i class="fa-solid fa-lock me-1"></i>Block Kalendar JKPT</button>
+      <button class="btn btn-sm btn-outline-success w-100" onclick="execManualAdvance(5)">Tandakan Selesai</button>`;
+    } else if (stepNum===6) {
+      html += `<div class="alert alert-info py-2 small mb-2">Emel jemputan kepada JKPT, Penyelia, Pelajar (cc Penyelia).</div>
+      <button class="btn btn-warning btn-sm w-100" onclick="execStep6()"><i class="fa-solid fa-envelopes-bulk me-1"></i>Emel Jemputan Rasmi Viva</button>
+      <button class="btn btn-sm btn-outline-success w-100 mt-2" onclick="execManualAdvance(6)">Langkau (Manual)</button>`;
+    } else if (stepNum===7) {
+      html += `<div class="alert alert-info py-2 small mb-2">Emel H-3 kepada Pengerusi, IE/EE, Penyelia, Pelajar.</div>
+      <button class="btn btn-info btn-sm w-100 text-white" onclick="execStep7()"><i class="fa-solid fa-clock me-1"></i>Emel H-3</button>
+      <button class="btn btn-sm btn-outline-success w-100 mt-2" onclick="execManualAdvance(7)">Langkau</button>`;
+    } else if (stepNum===8) {
+      html += `<div class="alert alert-info py-2 small mb-2">Emel H-1 kepada Pengerusi, IE/EE, Wakil Dekan.</div>
+      <button class="btn btn-info btn-sm w-100 text-white" onclick="execStep8()"><i class="fa-solid fa-clock me-1"></i>Emel H-1</button>
+      <button class="btn btn-sm btn-outline-success w-100 mt-2" onclick="execManualAdvance(8)">Langkau</button>`;
+    } else if (stepNum===9) {
+      html += `<div class="alert alert-info py-2 small mb-2">Emel semasa Hari Viva kepada Penyelia.</div>
+      <button class="btn btn-success btn-sm w-100" onclick="execStep9()"><i class="fa-solid fa-paper-plane me-1"></i>Emel Hari Viva</button>
+      <button class="btn btn-sm btn-outline-success w-100 mt-2" onclick="execManualAdvance(9)">Langkau</button>`;
+    } else if (stepNum===10) {
+      html += `<div class="alert alert-info py-2 small mb-2">3H–1M selepas Viva: Pengerusi emel Laporan + PPS-18, Wakil Dekan emel Borang.</div>
+      <div class="upload-zone mb-2" id="dropZoneL10" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event,10,'dropZoneL10')" onclick="document.getElementById('fileInputL10').click()"><i class="fa-solid fa-cloud-arrow-up"></i><p class="mb-0 mt-1 small text-muted">Seret & lepas PDF Laporan / PPS-18 / Borang</p></div>
+      <input type="file" id="fileInputL10" accept="application/pdf" style="display:none" onchange="handleFileSelect(this,10,'dropZoneL10')" multiple>
+      <div class="mb-2 small" id="fileListL10"></div>
+      <button class="btn btn-sm btn-outline-success" onclick="execManualAdvance(10)">Tandakan Selesai</button>`;
+    } else if (stepNum===11) {
+      html += `<div class="alert alert-info py-2 small mb-2">Edar dokumen kepada Intan (keputusan) dan Zaila (hono).</div>
+      <button class="btn btn-primary btn-sm w-100" onclick="execStep11()"><i class="fa-solid fa-share-nodes me-1"></i>Edar Dokumen & Hono</button>
+      <button class="btn btn-sm btn-outline-success w-100 mt-2" onclick="execManualAdvance(11)">Langkau</button>`;
+    } else if (stepNum===12) {
+      const st12 = docStatus['L12'] || {};
+      html += `<div class="alert alert-info py-2 small mb-2">Sedia surat keputusan untuk tandatangan Dekan. Emel 10 dokumen kepada pelajar.</div>`;
+      html += _cardSurat('Surat Keputusan Viva', 'Langkah 12 — Termasuk PPS-19, PPS-26, Senarai Semak', st12, 'L12:');
+    } else if (stepNum===13) {
+      html += `<div class="alert alert-info py-2 small mb-2">Terima tesis pembetulan, Senarai Semak, PPS-26, PPS-19, PPS-28, artikel penuh.</div>
+      <div class="upload-zone mb-2" id="dropZoneL13" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event,13,'dropZoneL13')" onclick="document.getElementById('fileInputL13').click()"><i class="fa-solid fa-cloud-arrow-up"></i><p class="mb-0 mt-1 small text-muted">Seret & lepas PDF Tesis Pembetulan / PPS-26 / PPS-19 / PPS-28</p></div>
+      <input type="file" id="fileInputL13" accept="application/pdf" style="display:none" onchange="handleFileSelect(this,13,'dropZoneL13')" multiple>
+      <div class="mb-2 small" id="fileListL13"></div>
+      <button class="btn btn-sm btn-outline-success" onclick="execManualAdvance(13)">Tandakan Selesai</button>`;
+    } else if (stepNum===14) {
+      html += `<div class="alert alert-info py-2 small mb-2">PIC emel PPS-19 kepada Pemeriksa. PIC terima PPS-19 untuk Formatting & Senat.</div>
+      <button class="btn btn-success btn-sm w-100" onclick="execStep14()"><i class="fa-solid fa-paper-plane me-1"></i>Emel PPS-19 kepada Pemeriksa</button>
+      <button class="btn btn-sm btn-outline-success w-100 mt-2" onclick="execManualAdvance(14)">Tandakan Selesai</button>`;
     }
+    if (stepNum>14) html += `<div class="alert alert-success"><i class="fa-solid fa-circle-check me-1"></i>Semua 14 langkah selesai! Calon layak bergraduat.</div>`;
+    panel.innerHTML = html;
+  }
 
-    function extractStepNumber(status) {
-      if (!status) return 0;
-      const match = status.match(/Langkah (\d+)/);
-      return match ? parseInt(match[1]) : 0;
-    }
+  function _cardSurat(tajuk, sub, statusObj, cmdJana) {
+    const st = statusObj || {};
+    const generated = st.status==='generated'||st.status==='changed';
+    const changed = st.status==='changed';
+    let badge = '<span class="badge badge-not-generated">⏱ Belum dijana</span>';
+    let btn = `<button class="btn btn-primary btn-sm" onclick="_runCmd('${cmdJana}')"><i class="fa-solid fa-file-signature me-1"></i>Jana</button>`;
+    let viewBtn = '';
+    let regenBtn = '';
 
-    function generateCheckpointUI(current) {
-      let html = '<div class="checkpoint-container">';
-      for (let i = 1; i <= 14; i++) {
-        let cls = i < current ? 'done' : (i === current ? 'current' : '');
-        html += `<div class="dot ${cls}" title="Langkah ${i}: ${langkahLabels[i-1]}"></div>`;
+    if (generated) {
+      badge = changed ? '<span class="badge badge-changed">⚠ Telah dijana (berubah)</span>' : '<span class="badge badge-generated">✓ Telah dijana</span>';
+      viewBtn = st.latestUrl ? `<a class="btn btn-sm btn-outline-primary" href="${st.latestUrl}" target="_blank"><i class="fa-solid fa-eye me-1"></i>Lihat</a>` : '';
+      if (changed) {
+        regenBtn = `<button class="btn btn-sm btn-outline-warning" onclick="_runCmd('${cmdJana}')"><i class="fa-solid fa-rotate me-1"></i>Jana Semula</button>`;
+        if (st.penerimaFail && st.penerimaSSoT) {
+          badge += ` <small class="text-muted">(${st.penerimaFail} → ${st.penerimaSSoT})</small>`;
+        }
       }
-      html += '</div>';
-      return html;
+      btn = '';
     }
 
-    function openModal(id) {
-      const s = globalData.find(item => item.No_Matrik == id);
-      document.getElementById('modalStudentName').innerText = s.Nama_Pelajar;
-      const current = extractStepNumber(s.Status_Langkah);
-      
-      const stepper = document.getElementById('modalStepper');
-      stepper.innerHTML = '';
-      langkahLabels.forEach((label, i) => {
-        const stepNum = i + 1;
-        let state = stepNum < current ? 'done' : (stepNum === current ? 'active' : '');
-        let icon = stepNum < current ? '<i class="fa-solid fa-check"></i>' : stepNum;
-        
-        stepper.innerHTML += `
-          <div class="step-item ${state}">
-            <div class="step-number">${icon}</div>
-            <div class="small">
-              <div class="fw-bold" style="font-size:0.75rem;">Langkah ${stepNum}</div>
-              <div class="text-muted" style="font-size:0.7rem;">${label}</div>
-            </div>
-          </div>
-        `;
-      });
-      
-      new bootstrap.Modal(document.getElementById('actionModal')).show();
-    }
+    return `<div class="doc-card d-flex justify-content-between align-items-center">
+      <div><strong class="small">${tajuk}</strong><br><span class="text-muted" style="font-size:0.7rem">${sub}</span></div>
+      <div class="d-flex align-items-center gap-2">${badge} ${viewBtn} ${regenBtn} ${btn}</div>
+    </div>`;
+  }
 
-    // Placeholder functions for automation
-    function submitCalendarBooking() { alert("Menyimpan ke Google Calendar..."); }
-    function generateNoS() { alert("Menjana Surat NoS & PDF..."); }
-    function generateLantikan(role) { alert("Menjana Surat Lantikan " + role + "..."); }
-  </script>
+  function _runCmd(cmd) {
+    const [act, arg] = cmd.split(':');
+    switch (act) {
+      case 'L1': execStep1(); break;
+      case 'L4': execStep4(arg.replace(/_/g, ' ')); break;
+      case 'L12': execStep12(); break;
+    }
+  }
+
+  /* ====== TAB DOKUMEN ====== */
+  function renderDocTab() {
+    const panel = document.getElementById('panelDokumen');
+    panel.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Memuatkan...</div>';
+    google.script.run.withSuccessHandler(r=>{
+      let html = '';
+      for(let s=1;s<=14;s++){
+        const files = (r['L'+s]||[]);
+        const label = langkahLabels[s-1];
+        html += `<h6 class="fw-bold mt-3 mb-2" style="font-size:0.75rem;">L${s}: ${label} <span class="badge bg-light text-muted">${files.length} fail</span></h6>`;
+        if (!files.length) html += '<p class="text-muted small">Tiada fail.</p>';
+        else files.forEach(f=>html += `<div class="doc-card d-flex justify-content-between align-items-center py-2"><div><i class="fa-solid fa-file-pdf text-danger me-2"></i><small>${f.nama}</small></div><div class="d-flex gap-1"><small class="text-muted">${(f.saiz/1024).toFixed(0)} KB</small><a class="btn btn-sm btn-outline-primary ms-2" href="${f.url}" target="_blank"><i class="fa-solid fa-eye"></i></a></div></div>`);
+      }
+      panel.innerHTML = html || '<p class="text-muted text-center py-3">Tiada dokumen dalam mana-mana folder.</p>';
+    }).listAllStepFiles(modalMatrik);
+  }
+
+  /* ====== TAB SEJARAH (TIMELINE) ====== */
+  function renderAuditTimeline(trail) {
+    const panel = document.getElementById('panelSejarah');
+    if (!trail||!trail.length) { panel.innerHTML = '<p class="text-muted text-center py-3">Tiada rekod aktiviti.</p>'; return; }
+    trail.sort((a,b)=>new Date(b.tarikhMasa)-new Date(a.tarikhMasa));
+    panel.innerHTML = '<div class="timeline">'+trail.map(a=>`
+      <div class="tl-item ${a.langkah?'step-done':''}">
+        <div class="tl-dot"></div>
+        <div class="small"><strong>${a.tindakan||'-'}</strong></div>
+        <div class="small text-muted">${a.tarikhMasa||''} · L${a.langkah||'?'} · ${a.pic||''} ${a.penerima?'· Penerima: '+a.penerima:''}</div>
+        ${a.lampiranUrl?`<a href="${a.lampiranUrl}" target="_blank" class="small"><i class="fa-solid fa-file-pdf me-1"></i>Lihat Dokumen</a>`:''}
+      </div>
+    `).join('')+'</div>';
+  }
+
+  /* ====== TAB PROFIL ====== */
+  function renderProfil(calon) {
+    const panel = document.getElementById('panelProfil');
+    if (!calon) { panel.innerHTML = '<p class="text-muted text-center py-3">Data tidak dijumpai.</p>'; return; }
+    panel.innerHTML = `
+      <div class="row g-2">
+        <div class="col-md-6"><div class="profil-kad"><strong>No. Matrik</strong><span>${calon.No_Matrik||'-'}</span></div></div>
+        <div class="col-md-6"><div class="profil-kad"><strong>Nama</strong><span>${calon.Nama_Pelajar||'-'}</span></div></div>
+        <div class="col-12"><div class="profil-kad"><strong>Tajuk Penyelidikan</strong><span>${calon.Tajuk_Penyelidikan||'-'}</span></div></div>
+        <div class="col-md-6"><div class="profil-kad"><strong>Program</strong><span>${calon.Nama_Program||'-'} (${calon.Level||'-'})</span></div></div>
+        <div class="col-md-6"><div class="profil-kad"><strong>Semester</strong><span>${calon.Semester||'-'}</span></div></div>
+        <div class="col-md-6"><div class="profil-kad"><strong>Emel</strong><span>${calon.Emel_Pelajar||'-'}</span></div></div>
+        <div class="col-md-6"><div class="profil-kad"><strong>Penyelia Utama</strong><span>${calon.Penyelia_Utama||'-'}</span></div></div>
+        <div class="col-md-4"><div class="profil-kad"><strong>Pengerusi</strong><span>${calon.Pengerusi||'-'}</span></div></div>
+        <div class="col-md-4"><div class="profil-kad"><strong>Pemeriksa Dalam</strong><span>${calon.Pemeriksa_Dalam||'-'}</span></div></div>
+        <div class="col-md-4"><div class="profil-kad"><strong>Pemeriksa Luar</strong><span>${calon.Pemeriksa_Luar||'-'}</span></div></div>
+        <div class="col-md-4"><div class="profil-kad"><strong>Wakil Dekan</strong><span>${calon.Wakil_Dekan||'-'}</span></div></div>
+        <div class="col-md-4"><div class="profil-kad"><strong>Tarikh Viva</strong><span class="text-success fw-bold">${calon.Tarikh_Viva||'TBC'}</span></div></div>
+        <div class="col-md-4"><div class="profil-kad"><strong>Status</strong><span>${calon.Status_Langkah||'Belum Mula'}</span></div></div>
+      </div>`;
+  }
+
+  /* ====== EXECUTION ====== */
+  function execStep1(){ callBE('generateNoSLetter',[modalMatrik],'Surat NoS dijana!',true); }
+  function execStep3(){ const d=document.getElementById('vivaDate').value; if(!d)return showToast('Sila pilih tarikh.','error'); callBE('calendarBookVivaSlot',[modalMatrik,d,document.getElementById('vivaTime').value,document.getElementById('vivaPlace').value,document.getElementById('vivaWebex').value],'Slot ditempah!',true); }
+  function execStep4(r){ callBE('generateAppointmentLetter',[modalMatrik,r],'Surat Lantikan '+r+' dijana!',true); }
+  function execStep5Block(){ callBE('calendarBlockCommittee',[modalMatrik],'Kalendar diblok!',true); }
+  function execStep6(){ callBE('mailSendJemputanViva',[modalMatrik],'Jemputan diemel!',true); }
+  function execStep7(){ callBE('mailSendH3',[modalMatrik],'Emel H-3 diedarkan!',true); }
+  function execStep8(){ callBE('mailSendH1',[modalMatrik],'Emel H-1 diedarkan!',true); }
+  function execStep9(){ callBE('mailSendHariViva',[modalMatrik],'Emel Hari Viva dihantar!',true); }
+  function execStep11(){ callBE('mailSendEdarDokumen',[modalMatrik],'Dokumen diedarkan!',true); }
+  function execStep12(){ callBE('generateSuratKeputusan',[modalMatrik],'Surat Keputusan dijana!',true); }
+  function execStep14(){ callBE('mailSendPPS19',[modalMatrik],'PPS-19 diedarkan!',true); }
+  function execManualAdvance(n){ callBE('workflowAdvanceStep',[modalMatrik,n,{}],'Langkah '+n+' selesai!',true); }
+
+  function callBE(fn,args,msg,reload){
+    google.script.run.withSuccessHandler(r=>{showToast(msg,'success');if(reload){loadDashboardData();setTimeout(()=>{if(modalMatrik)openModal(modalMatrik);},600);}}).withFailureHandler(e=>showToast(e.message,'error'))[fn].apply(null,args);
+  }
+
+  /* ====== UPLOAD ====== */
+  function handleFileSelect(i,n,z){ Array.from(i.files).forEach(f=>uploadOneFile(f,n,z)); i.value=''; }
+  function handleDrop(e,n,z){ e.preventDefault(); document.getElementById(z).classList.remove('dragover'); Array.from(e.dataTransfer.files).forEach(f=>uploadOneFile(f,n,z)); }
+  function uploadOneFile(f,n,z){
+    if(f.size>10*1024*1024) return showToast(f.name+' terlalu besar (maks 10MB).','error');
+    const li='fileList'+z.replace('dropZoneL','');
+    const el=document.createElement('div'); el.className='text-primary small mb-1'; el.innerHTML='<i class="fa-solid fa-spinner fa-spin me-1"></i>'+f.name;
+    document.getElementById(li).appendChild(el);
+    const r=new FileReader();
+    r.onload=function(e){
+      google.script.run.withSuccessHandler(r2=>{el.innerHTML='<i class="fa-solid fa-check text-success me-1"></i>'+f.name;showToast(f.name+' dimuat naik!','success');loadDashboardData();}).withFailureHandler(err=>{el.innerHTML='<i class="fa-solid fa-xmark text-danger me-1"></i>'+f.name;showToast(err.message,'error');}).uploadScannedPdf(e.target.result.split(',')[1],f.name,modalMatrik,n);
+    };
+    r.readAsDataURL(f);
+  }
+
+  /* ====== TOAST ====== */
+  function showToast(m,t){ const c=document.getElementById('toastContainer'); const e=document.createElement('div'); e.className='toast-item toast-'+(t||'info'); e.innerText=m; c.appendChild(e); setTimeout(()=>{e.style.opacity='0';setTimeout(()=>e.remove(),300);},4000); }
+</script>
 </body>
 </html>
