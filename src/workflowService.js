@@ -4,6 +4,16 @@
  */
 
 /**
+ * TEMPOH TRANSIT PIAWAI (hari) mengikut SOP
+ */
+function getTransitPresets() {
+  return {
+    1: 7, 2: 14, 3: 7, 4: 7, 5: 3, 6: 2, 7: 2,
+    8: 1, 9: 7, 10: 2, 11: 2, 12: 14, 13: 30, 14: 7
+  };
+}
+
+/**
  * Majukan calon ke langkah seterusnya selepas validasi prasyarat
  */
 function workflowAdvanceStep(noMatrik, stepNum, data) {

@@ -97,6 +97,16 @@
     .btn-soft:hover { background: var(--card-hover); }
 
     .action-header { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; padding: 12px 16px; border-radius: 10px 10px 0 0; margin: -4px -4px 12px -4px; }
+    .kpi-card { border-radius: 14px; padding: 20px; border: 1px solid var(--border); background: var(--surface); transition: 0.2s; }
+    .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .chart-container { position: relative; width: 100%; min-height: 260px; }
+    .chart-wrap { background: var(--surface); border-radius: 14px; padding: 16px; border: 1px solid var(--border); }
+    .heatmap-cell { display: inline-block; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.7rem; }
+    .hm-green { background: #d1fae5; color: #065f46; }
+    .hm-yellow { background: #fef3c7; color: #92400e; }
+    .hm-red { background: #fce4e4; color: #991b1b; }
+    .hm-gray { background: #f3f4f6; color: #6b7280; }
   </style>
 </head>
 <body class="bg-light">
@@ -119,15 +129,44 @@
       </div>
     </div>
 
-    <!-- Tab Navigasi Utama -->
+    <!-- Tab Navigasi Utama (5 tab) -->
     <ul class="nav nav-pills mb-3 gap-1" id="mainTabs">
-      <li class="nav-item"><a class="nav-link active small fw-bold px-3" href="#" onclick="switchMainTab('dashboard')"><i class="fa-solid fa-table-list me-1"></i>Papan Pemuka</a></li>
-      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('direktori')"><i class="fa-solid fa-address-book me-1"></i>Direktori</a></li>
-      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('takwim')"><i class="fa-solid fa-calendar-week me-1"></i>Takwim</a></li>
-      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('laporan')"><i class="fa-solid fa-chart-bar me-1"></i>Laporan</a></li>
+      <li class="nav-item"><a class="nav-link active small fw-bold px-3" href="#" onclick="switchMainTab('overview')"><i class="fa-solid fa-chart-pie me-1"></i>Papan Pemuka Utama</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('dashboard')"><i class="fa-solid fa-list-check me-1"></i>Senarai Calon</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('takwim')"><i class="fa-solid fa-calendar-week me-1"></i>Takwim Viva</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('laporan')"><i class="fa-solid fa-file-lines me-1"></i>Laporan</a></li>
+      <li class="nav-item"><a class="nav-link small fw-bold px-3" href="#" onclick="switchMainTab('tindakan')"><i class="fa-solid fa-bell me-1"></i>Tindakan & Peringatan</a></li>
     </ul>
 
-    <!-- Tab Dashboard -->
+    <!-- Tab Overview (Papan Pemuka Utama) -->
+    <div id="tabOverview">
+      <!-- KPI Cards -->
+      <div class="row g-3 mb-3" id="kpiRow">
+        <div class="col" id="kpiAktif"><div class="kpi-card text-center"><div class="kpi-icon bg-primary bg-opacity-10 text-primary mx-auto mb-2"><i class="fa-solid fa-user-graduate"></i></div><h3 class="fw-bold mb-1" id="kpiCalon">--</h3><small class="text-muted">Calon Aktif</small></div></div>
+        <div class="col" id="kpiViva"><div class="kpi-card text-center"><div class="kpi-icon bg-success bg-opacity-10 text-success mx-auto mb-2"><i class="fa-solid fa-calendar-check"></i></div><h3 class="fw-bold mb-1" id="kpiVivaBulan">--</h3><small class="text-muted">Viva Bulan Ini</small></div></div>
+        <div class="col" id="kpiSelesai"><div class="kpi-card text-center"><div class="kpi-icon bg-info bg-opacity-10 text-info mx-auto mb-2"><i class="fa-solid fa-circle-check"></i></div><h3 class="fw-bold mb-1" id="kpiSelesaiBulan">--</h3><small class="text-muted">Selesai Bulan Ini</small></div></div>
+        <div class="col" id="kpiSLA"><div class="kpi-card text-center"><div class="kpi-icon bg-warning bg-opacity-10 text-warning mx-auto mb-2"><i class="fa-solid fa-hourglass-half"></i></div><h3 class="fw-bold mb-1" id="kpiSLALewat">--</h3><small class="text-muted">SLA Lewat</small></div></div>
+        <div class="col" id="kpiSkor"><div class="kpi-card text-center"><div class="kpi-icon bg-secondary bg-opacity-10 text-secondary mx-auto mb-2"><i class="fa-solid fa-chart-line"></i></div><h3 class="fw-bold mb-1" id="kpiSkorSLA">--%</h3><small class="text-muted">Skor SLA</small></div></div>
+      </div>
+
+      <!-- Graf Baris 1 -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-6"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-chart-bar text-primary me-1"></i>Taburan Calon Per Langkah</h6><div class="chart-container"><canvas id="chartTaburan"></canvas></div></div></div>
+        <div class="col-md-6"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-chart-pie text-success me-1"></i>Pematuhan SLA</h6><div class="chart-container"><canvas id="chartSLA"></canvas></div></div></div>
+      </div>
+
+      <!-- Graf Baris 2 -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-8"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-table text-info me-1"></i>Analisis Tempoh Transit Langkah (Preset vs Sebenar)</h6><div class="table-responsive" style="max-height:320px;overflow-y:auto;"><table class="table table-sm small mb-0" id="transitTable"><thead><tr><th>Langkah</th><th>Preset</th><th>Purata Sebenar</th><th>Sisihan</th><th>Status</th></tr></thead><tbody></tbody></table></div></div></div>
+        <div class="col-md-4"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-timeline text-warning me-1"></i>Viva Akan Datang</h6><div style="max-height:320px;overflow-y:auto;" id="upcomingVivaList"><p class="small text-muted text-center py-3">Memuatkan...</p></div></div></div>
+      </div>
+
+      <!-- Graf Baris 3 -->
+      <div class="row g-3">
+        <div class="col-md-6"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-building-columns text-purple me-1"></i>Taburan Mengikut Program</h6><div class="chart-container" style="min-height:200px;"><canvas id="chartFakulti"></canvas></div></div></div>
+        <div class="col-md-6"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-triangle-exclamation text-danger me-1"></i>Langkah Paling Sesak (Bottleneck)</h6><div id="bottleneckPanel" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div></div></div>
+      </div>
+    </div>
     <div id="tabDashboard">
       <div class="row g-3 mb-3">
         <div class="col-md-3"><div class="card border-0 shadow-sm p-3"><div class="d-flex align-items-center gap-3"><div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><i class="fa-solid fa-users fa-lg"></i></div><div><small class="text-muted d-block">Jumlah Calon</small><h4 class="m-0 fw-bold" id="metricTotal">0</h4></div></div></div></div>
@@ -156,6 +195,16 @@
 
     <!-- Tab Laporan -->
     <div id="tabLaporan" class="d-none"><div class="row g-3" id="laporanContent"></div></div>
+
+    <!-- Tab Tindakan & Peringatan -->
+    <div id="tabTindakan" class="d-none">
+      <div class="row g-3 mb-3">
+        <div class="col-12"><div class="chart-wrap"><h6 class="fw-bold small mb-3"><i class="fa-solid fa-bell text-warning me-1"></i>Peringatan Viva (H-7 / H-3 / H-1)</h6>
+        <div class="table-responsive" style="max-height:400px;overflow-y:auto;"><table class="table table-sm small mb-0"><thead><tr><th>Calon</th><th>Tarikh Viva</th><th>Kiraan Hari</th><th>Jenis</th><th>Status</th><th>Tindakan</th></tr></thead><tbody id="reminderTableBody"><tr><td colspan="6" class="text-center text-muted py-3">Memuatkan...</td></tr></tbody></table></div>
+        </div></div>
+      </div>
+      <div class="text-end"><button class="btn btn-warning btn-sm" onclick="hantarSemuaPeringatan()"><i class="fa-solid fa-paper-plane me-1"></i>Hantar Semua Peringatan</button></div>
+    </div>
   </div>
 </div>
 
@@ -192,7 +241,8 @@
 <!-- Toast -->
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
   let globalData = [], modalMatrik = null, modalStep = 0, docStatus = {};
   const langkahLabels = [
@@ -203,7 +253,7 @@
     "Terima Tesis Pembetulan","Edar PPS-19 & Senat"
   ];
 
-  document.addEventListener("DOMContentLoaded", ()=>{ loadDashboardData(); initDarkMode(); });
+  document.addEventListener("DOMContentLoaded", ()=>{ loadDashboardData(); loadOverview(); initDarkMode(); });
 
   /* ====== DARK MODE ====== */
   function initDarkMode() {
@@ -218,52 +268,173 @@
     document.getElementById('darkToggle').innerHTML = next === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   }
 
-  /* ====== MAIN TABS ====== */
+  /* ====== MAIN TABS (5 tab) ====== */
   function switchMainTab(tab) {
-    document.querySelectorAll('#mainContent [id^="tab"]').forEach(el => el.classList.add('d-none'));
-    document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('d-none');
+    var tabs = ['overview','dashboard','takwim','laporan','tindakan'];
+    tabs.forEach(t => document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('d-none'));
+    var targetId = 'tab' + tab.charAt(0).toUpperCase() + tab.slice(1);
+    if (document.getElementById(targetId)) document.getElementById(targetId).classList.remove('d-none');
     document.querySelectorAll('#mainTabs .nav-link').forEach(l => l.classList.remove('active'));
     event.target.classList.add('active');
-    if (tab === 'direktori') loadDirektori();
+    if (tab === 'overview') loadOverview();
     else if (tab === 'takwim') loadTakwim();
+    else if (tab === 'tindakan') loadTindakan();
     else if (tab === 'laporan') loadLaporan();
   }
 
-  function loadDirektori() {
-    google.script.run.withSuccessHandler(d => {
-      const tbody = document.getElementById('direktoriBody');
-      tbody.innerHTML = !d||!d.length ? '<tr><td colspan="4" class="text-center py-3 text-muted">Tiada data.</td></tr>' :
-        d.map(r => `<tr><td class="fw-bold">${r.nama||'-'}</td><td><small>${r.emel||'-'}</small></td><td>${r.institusi||'-'}</td><td>${r.kepakaran||'-'}</td></tr>`).join('');
-    }).getDirektoriData();
+  /* ====== OVERVIEW (Papan Pemuka Utama) ====== */
+  function loadOverview() {
+    google.script.run.withSuccessHandler(function(ov) {
+      document.getElementById('kpiCalon').innerText = ov.calonAktif;
+      document.getElementById('kpiVivaBulan').innerText = ov.vivaBulanIni;
+      document.getElementById('kpiSelesaiBulan').innerText = ov.selesaiBulanIni;
+      document.getElementById('kpiSLALewat').innerText = ov.slaLewat;
+      document.getElementById('kpiSkorSLA').innerText = ov.peratusSelesai + '%';
+    }).getDashboardOverview();
+
+    google.script.run.withSuccessHandler(renderTaburanChart).getStepDistribution();
+    google.script.run.withSuccessHandler(renderSLAChart).getSLAStats();
+    google.script.run.withSuccessHandler(renderTransitTable).getTransitTimeAnalysis();
+    google.script.run.withSuccessHandler(renderUpcomingVivas).getUpcomingVivas(30);
+    google.script.run.withSuccessHandler(renderFacultyChart).getFacultyDistribution();
+    google.script.run.withSuccessHandler(renderBottleneck).getStepDistribution();
   }
+
+  var _charts = {};
+  function _destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); _charts[id] = null; } }
+
+  function renderTaburanChart(data) {
+    _destroyChart('taburan');
+    var ctx = document.getElementById('chartTaburan').getContext('2d');
+    var labels = data.labelLangkah || [];
+    var vals = labels.map(function(_, i) { return i === 0 ? data.taburan.L0 || 0 : (i <= 14 ? data.taburan['L'+i] || 0 : data.taburan.L14_Selesai || 0); });
+    var colors = vals.map(function(v, i) { var pct = vals.length > 0 ? i / (vals.length - 1) : 0; var r = Math.floor(59 + pct * 140); var g = Math.floor(130 - pct * 80); var b = Math.floor(246 - pct * 200); return 'rgba('+r+','+g+','+b+',0.8)'; });
+    _charts.taburan = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Bilangan Calon', data: vals, backgroundColor: colors, borderRadius: 6, borderSkipped: false }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+
+  function renderSLAChart(data) {
+    _destroyChart('sla');
+    var ctx = document.getElementById('chartSLA').getContext('2d');
+    _charts.sla = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: ['On-Time ('+data.onTime+')', 'At-Risk ('+data.atRisk+')', 'Overdue ('+data.overdue+')'], datasets: [{ data: [data.onTime, data.atRisk, data.overdue], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+    });
+    document.getElementById('kpiSkorSLA').innerText = data.skorSLA + '%';
+    document.getElementById('kpiSLALewat').innerText = data.overdue;
+  }
+
+  function renderTransitTable(data) {
+    var tbody = document.querySelector('#transitTable tbody');
+    tbody.innerHTML = '';
+    var presets = data.presets || {};
+    var transit = data.transit || [];
+    for (var s = 1; s <= 14; s++) {
+      var key = 'L' + s;
+      var t = transit[key] || { preset: presets[s] || 7, avg: 0, onTrack: 0, overdue: 0, total: 0 };
+      var diff = t.avg - t.preset;
+      var cls = t.total === 0 ? 'hm-gray' : (diff <= 0 ? 'hm-green' : (diff <= t.preset * 0.5 ? 'hm-yellow' : 'hm-red'));
+      var statusText = t.total === 0 ? '--' : (diff <= 0 ? 'On Track' : (diff <= t.preset * 0.5 ? 'Warning' : 'Overdue'));
+      tbody.innerHTML += '<tr><td class="fw-bold">L' + s + '</td><td>' + t.preset + ' hari</td><td>' + (t.total > 0 ? t.avg + ' hari' : '--') + '</td><td><span class="heatmap-cell ' + cls + '">' + (t.total > 0 ? (diff > 0 ? '+' : '') + diff : '--') + '</span></td><td><span class="heatmap-cell ' + cls + '">' + statusText + '</span></td></tr>';
+    }
+  }
+
+  function renderUpcomingVivas(data) {
+    var div = document.getElementById('upcomingVivaList');
+    if (!data || !data.length) { div.innerHTML = '<p class="small text-muted text-center py-3">Tiada Viva dalam 30 hari.</p>'; return; }
+    div.innerHTML = data.map(function(v) {
+      var badge = v.Urgensi === 'kritikal' ? 'badge bg-danger' : (v.Urgensi === 'tinggi' ? 'badge bg-warning text-dark' : (v.Urgensi === 'sederhana' ? 'badge bg-info' : 'badge bg-secondary'));
+      return '<div class="d-flex justify-content-between align-items-center border-bottom py-2"><div><strong class="small">'+v.Nama_Pelajar+'</strong><br><small class="text-muted">'+v.Tarikh_Viva+'</small></div><span class="'+badge+'">'+v.HariHingga+' hari</span></div>';
+    }).join('');
+  }
+
+  function renderFacultyChart(data) {
+    _destroyChart('fakulti');
+    var ctx = document.getElementById('chartFakulti').getContext('2d');
+    var colors = ['#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#06b6d4','#84cc16','#f97316'];
+    _charts.fakulti = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: data.label, datasets: [{ label: 'Calon', data: data.nilai, backgroundColor: colors.slice(0, data.label.length), borderRadius: 4 }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+
+  function renderBottleneck(data) {
+    var p = data.langkahPalingSesak || {};
+    var panel = document.getElementById('bottleneckPanel');
+    if (!p.langkah || p.bilangan === 0) { panel.innerHTML = '<small class="text-muted">Semua langkah seimbang.</small>'; return; }
+    var pct = data.jumlahCalon > 0 ? Math.round(p.bilangan / data.jumlahCalon * 100) : 0;
+    panel.innerHTML = '<h2 class="fw-bold text-danger">' + p.langkah + '</h2><p class="mb-0 fw-bold">' + p.label + '</p><p class="small text-muted">' + p.bilangan + ' calon (' + pct + '%) tersekat di sini</p><div class="mt-2"><div class="bg-light rounded-pill" style="height:8px;max-width:200px;margin:0 auto;"><div class="bg-danger rounded-pill" style="width:' + pct + '%;height:100%"></div></div></div>';
+  }
+
+  /* ====== TINDAKAN & PERINGATAN ====== */
+  function loadTindakan() {
+    google.script.run.withSuccessHandler(function(queue) {
+      var tbody = document.getElementById('reminderTableBody');
+      if (!queue || !queue.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Tiada peringatan menunggu.</td></tr>'; return; }
+      tbody.innerHTML = queue.map(function(q) {
+        var statusBadge = q.SudahDihantar ? '<span class="badge bg-success">Sudah</span>' : '<span class="badge bg-warning text-dark">Belum</span>';
+        var btn = q.SudahDihantar ? '' : '<button class="btn btn-sm btn-outline-warning" onclick="hantarSatuPeringatan(\''+q.No_Matrik+'\',\''+q.Jenis+'\')">Hantar</button>';
+        var jenisBadge = q.Jenis === 'H7' ? 'badge bg-info' : (q.Jenis === 'H3' ? 'badge bg-warning text-dark' : 'badge bg-danger');
+        return '<tr><td class="fw-bold">'+q.Nama_Pelajar+'<br><small>'+q.No_Matrik+'</small></td><td>'+q.Tarikh_Viva+'</td><td><span class="'+jenisBadge+'">'+q.HariHingga+' hari</span></td><td>'+q.Label+'</td><td>'+statusBadge+'</td><td>'+btn+'</td></tr>';
+      }).join('');
+    }).getReminderQueue();
+  }
+
+  function hantarSatuPeringatan(matrik, jenis) {
+    showToast('Menghantar peringatan...', 'info');
+    google.script.run.withSuccessHandler(function(r) { showToast(r.message, 'success'); loadTindakan(); }).withFailureHandler(function(e) { showToast(e.message, 'error'); }).sendReminderManual(matrik, jenis);
+  }
+
+  function hantarSemuaPeringatan() {
+    showToast('Menghantar semua peringatan...', 'info');
+    google.script.run.withSuccessHandler(function(r) { showToast('Dihantar: ' + (r.dihantar||0) + ' calon', 'success'); loadTindakan(); }).withFailureHandler(function(e) { showToast(e.message, 'error'); }).sendDailyReminders();
+  }
+
   function loadTakwim() {
-    const d = globalData.filter(s=>s.Tarikh_Viva&&s.Tarikh_Viva!=='TBC');
-    document.getElementById('takwimBody').innerHTML = !d.length ? '<tr><td colspan="4" class="text-center py-3 text-muted">Tiada tarikh Viva.</td></tr>' :
-      d.map(s=>`<tr><td class="fw-bold">${s.Nama_Pelajar||'-'}</td><td>${s.No_Matrik}</td><td><span class="text-success fw-bold">${s.Tarikh_Viva}</span></td><td>${s.Status_Langkah||'-'}</td></tr>`).join('');
+    google.script.run.withSuccessHandler(function(data) {
+      document.getElementById('takwimBody').innerHTML = !data || !data.length ? '<tr><td colspan="4" class="text-center py-3 text-muted">Tiada Viva dalam 30 hari.</td></tr>' :
+        data.map(function(v) { return '<tr><td class="fw-bold">'+v.Nama_Pelajar+'</td><td>'+v.No_Matrik+'</td><td class="text-success fw-bold">'+v.Tarikh_Viva+'</td><td><span class="badge '+(v.Urgensi==='kritikal'?'bg-danger':(v.Urgensi==='tinggi'?'bg-warning text-dark':'bg-info'))+'">'+v.HariHingga+' hari</span></td></tr>'; }).join('');
+    }).getUpcomingVivas(30);
   }
+
   function loadLaporan() {
-    google.script.run.withSuccessHandler(r=>{
-      const l = Object.keys(r.taburan).filter(k=>k.startsWith('L'));
+    google.script.run.withSuccessHandler(function(r) {
       document.getElementById('laporanContent').innerHTML =
-        '<div class="col-md-6"><div class="card border-0 shadow-sm p-3"><h6 class="fw-bold mb-3">Taburan Calon</h6>'+
-        l.map(k=>`<div class="d-flex align-items-center mb-2"><span class="small fw-bold me-2" style="width:28px">${k.replace('L','L')}</span><div class="flex-grow-1 bg-light rounded-pill" style="height:8px;"><div class="bg-primary rounded-pill" style="width:${r.jumlahCalon>0?Math.round(r.taburan[k]/r.jumlahCalon*100):0}%;height:100%"></div></div><span class="small ms-2">${r.taburan[k]}</span></div>`).join('')+
-        '</div></div><div class="col-md-6"><div class="card border-0 shadow-sm p-3"><h6 class="fw-bold mb-3">Ringkasan</h6><p>Jumlah Calon: <strong>${r.jumlahCalon}</strong></p><p>Belum Mula: <strong>${r.taburan['Belum_Mula']||0}</strong></p><p>Selesai: <strong>${r.taburan['Selesai']||0}</strong></p></div></div>';
+        '<div class="col-md-12"><div class="card border-0 shadow-sm p-3"><h6 class="fw-bold mb-3">Ringkasan</h6><p>Jumlah Calon: <strong>'+r.jumlahCalon+'</strong></p><p>Belum Mula: <strong>'+(r.taburan['Belum_Mula']||0)+'</strong></p><p>Selesai: <strong>'+(r.taburan['Selesai']||0)+'</strong></p></div></div>';
     }).auditGetLaporanTaburan();
   }
 
   /* ====== DASHBOARD ====== */
   function loadDashboardData() {
     const spinner = document.getElementById('loadingSpinner');
+    const main = document.getElementById('mainContent');
     if (spinner) spinner.style.display='block';
+
+    var done = false;
+    var _tid = setTimeout(function() {
+      if (done) return;
+      done = true;
+      if (spinner) spinner.style.display='none';
+      if (main) main.style.display='block';
+      showToast('Sambungan ke pelayan terputus (timeout). Sila muat semula halaman.','error');
+    }, 15000);
+
     google.script.run
-      .withSuccessHandler(data => {
+      .withSuccessHandler(function(data) {
+        if (done) return; done = true; clearTimeout(_tid);
         try { renderDashboard(data); } catch(e) { showToast('Ralat paparan: '+e.message,'error'); }
         if (spinner) spinner.style.display='none';
       })
-      .withFailureHandler(e => {
-        showToast(e.message,'error');
+      .withFailureHandler(function(e) {
+        if (done) return; done = true; clearTimeout(_tid);
+        showToast('Ralat pelayan: '+e.message,'error');
         if (spinner) spinner.style.display='none';
-        document.getElementById('mainContent').style.display='block';
+        if (main) main.style.display='block';
       })
       .getStudentsData();
   }

@@ -23,7 +23,9 @@
     "workflowService.js",
     "auditService.js",
     "uploadService.js",
-    "notifications.js"
+    "notifications.js",
+    "analyticsService.js",
+    "reminderService.js"
   ],
   "skipSubdirectories": false
 }
